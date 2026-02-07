@@ -1,101 +1,145 @@
-use diorama_core::math::Vec2;
-
-use crate::building::extrude_building;
+use diorama_core::schema::{
+    DioramaScene, BuildingShape, TreeDef, terrain_height_rbf,
+};
+use crate::building::{extrude_building, l_shape_footprint, rect_footprint, t_shape_footprint};
 use crate::mesh::Mesh;
+use crate::terrain::{
+    generate_terrain_from_def, generate_slab_walls_from_def,
+    generate_road_from_def, generate_water_from_def,
+};
 use crate::vertex::Vertex;
 
-/// Warm color palette for buildings.
-const BUILDING_COLORS: [[f32; 3]; 8] = [
-    [0.93, 0.78, 0.62], // warm sand
-    [0.87, 0.63, 0.47], // terra cotta
-    [0.95, 0.87, 0.73], // cream
-    [0.82, 0.71, 0.55], // khaki
-    [0.90, 0.70, 0.50], // peach
-    [0.85, 0.80, 0.70], // beige
-    [0.78, 0.60, 0.45], // sienna
-    [0.92, 0.85, 0.78], // linen
-];
-
-struct BuildingSpec {
-    cx: f32,
-    cz: f32,
-    w: f32,
-    d: f32,
-    h: f32,
-    color_idx: usize,
+fn add_geometry(
+    all_verts: &mut Vec<Vertex>,
+    all_idxs: &mut Vec<u32>,
+    verts: &[Vertex],
+    idxs: &[u32],
+) {
+    let base = all_verts.len() as u32;
+    all_verts.extend_from_slice(verts);
+    for i in idxs {
+        all_idxs.push(base + i);
+    }
 }
 
-pub fn create_diorama(device: &wgpu::Device) -> Mesh {
+pub fn create_diorama_from_schema(device: &wgpu::Device, scene: &DioramaScene) -> Mesh {
     let mut all_vertices: Vec<Vertex> = Vec::new();
     let mut all_indices: Vec<u32> = Vec::new();
 
-    // Ground plane (20x20, centered at origin)
-    let ground_color = [0.55, 0.65, 0.45]; // muted green
-    let gs = 15.0_f32;
-    let gv = vec![
-        Vertex { position: [-gs, 0.0, -gs], normal: [0.0, 1.0, 0.0], color: ground_color },
-        Vertex { position: [ gs, 0.0, -gs], normal: [0.0, 1.0, 0.0], color: ground_color },
-        Vertex { position: [ gs, 0.0,  gs], normal: [0.0, 1.0, 0.0], color: ground_color },
-        Vertex { position: [-gs, 0.0,  gs], normal: [0.0, 1.0, 0.0], color: ground_color },
-    ];
-    let gi: Vec<u32> = vec![0, 1, 2, 0, 2, 3];
-    let base = all_vertices.len() as u32;
-    all_vertices.extend_from_slice(&gv);
-    for i in &gi {
-        all_indices.push(base + i);
+    // --- Terrain ---
+    let (tv, ti) = generate_terrain_from_def(&scene.terrain);
+    add_geometry(&mut all_vertices, &mut all_indices, &tv, &ti);
+
+    // --- Slab walls ---
+    let (sv, si) = generate_slab_walls_from_def(&scene.terrain, &scene.slab);
+    add_geometry(&mut all_vertices, &mut all_indices, &sv, &si);
+
+    // --- Water features ---
+    for water_def in &scene.water {
+        let (wv, wi) = generate_water_from_def(water_def);
+        add_geometry(&mut all_vertices, &mut all_indices, &wv, &wi);
     }
 
-    // Procedural buildings in a grid-like layout with variation
-    let buildings = vec![
-        // Row 1 (back)
-        BuildingSpec { cx: -10.0, cz: -10.0, w: 2.5, d: 2.5, h: 6.0, color_idx: 0 },
-        BuildingSpec { cx:  -6.0, cz:  -9.0, w: 3.0, d: 2.0, h: 4.5, color_idx: 1 },
-        BuildingSpec { cx:  -2.0, cz: -10.5, w: 2.0, d: 3.0, h: 8.0, color_idx: 2 },
-        BuildingSpec { cx:   2.5, cz:  -9.5, w: 2.5, d: 2.5, h: 5.0, color_idx: 3 },
-        BuildingSpec { cx:   7.0, cz: -10.0, w: 3.0, d: 2.0, h: 7.0, color_idx: 4 },
-        BuildingSpec { cx:  11.0, cz:  -9.0, w: 2.0, d: 2.5, h: 3.5, color_idx: 5 },
-        // Row 2
-        BuildingSpec { cx: -11.0, cz: -5.0, w: 2.0, d: 2.0, h: 5.5, color_idx: 6 },
-        BuildingSpec { cx:  -7.0, cz: -4.5, w: 2.5, d: 3.0, h: 3.0, color_idx: 7 },
-        BuildingSpec { cx:  -1.5, cz: -5.5, w: 3.5, d: 2.0, h: 9.0, color_idx: 0 },
-        BuildingSpec { cx:   3.0, cz: -4.0, w: 2.0, d: 2.0, h: 4.0, color_idx: 2 },
-        BuildingSpec { cx:   8.0, cz: -5.0, w: 2.5, d: 2.5, h: 6.5, color_idx: 1 },
-        // Row 3
-        BuildingSpec { cx:  -9.0, cz:  0.5, w: 2.0, d: 3.0, h: 4.0, color_idx: 3 },
-        BuildingSpec { cx:  -4.0, cz:  0.0, w: 3.0, d: 2.5, h: 7.5, color_idx: 5 },
-        BuildingSpec { cx:   1.0, cz:  1.0, w: 2.5, d: 2.5, h: 5.0, color_idx: 4 },
-        BuildingSpec { cx:   6.0, cz:  0.5, w: 2.0, d: 2.0, h: 3.5, color_idx: 6 },
-        BuildingSpec { cx:  10.0, cz: -0.5, w: 2.5, d: 3.0, h: 6.0, color_idx: 7 },
-        // Row 4 (front)
-        BuildingSpec { cx: -10.0, cz:  5.5, w: 2.5, d: 2.0, h: 4.5, color_idx: 1 },
-        BuildingSpec { cx:  -5.5, cz:  6.0, w: 3.0, d: 2.5, h: 6.0, color_idx: 0 },
-        BuildingSpec { cx:  -0.5, cz:  5.0, w: 2.0, d: 2.0, h: 8.5, color_idx: 3 },
-        BuildingSpec { cx:   4.0, cz:  6.5, w: 2.5, d: 3.0, h: 3.0, color_idx: 2 },
-        BuildingSpec { cx:   8.5, cz:  5.5, w: 2.0, d: 2.5, h: 5.5, color_idx: 5 },
-        // Row 5
-        BuildingSpec { cx:  -8.0, cz: 10.0, w: 2.5, d: 2.0, h: 4.0, color_idx: 7 },
-        BuildingSpec { cx:  -3.0, cz: 10.5, w: 2.0, d: 2.5, h: 7.0, color_idx: 4 },
-        BuildingSpec { cx:   2.0, cz: 11.0, w: 3.0, d: 2.0, h: 5.0, color_idx: 6 },
-        BuildingSpec { cx:   7.5, cz: 10.0, w: 2.0, d: 2.0, h: 6.5, color_idx: 0 },
-    ];
+    // --- Roads ---
+    for road_def in &scene.roads {
+        let (rv, ri) = generate_road_from_def(road_def, &scene.terrain);
+        add_geometry(&mut all_vertices, &mut all_indices, &rv, &ri);
+    }
 
-    for b in &buildings {
-        let hw = b.w / 2.0;
-        let hd = b.d / 2.0;
-        let footprint = vec![
-            Vec2::new(b.cx - hw, b.cz - hd),
-            Vec2::new(b.cx + hw, b.cz - hd),
-            Vec2::new(b.cx + hw, b.cz + hd),
-            Vec2::new(b.cx - hw, b.cz + hd),
-        ];
-        let color = BUILDING_COLORS[b.color_idx % BUILDING_COLORS.len()];
-        let (verts, idxs) = extrude_building(&footprint, b.h, color);
-        let base = all_vertices.len() as u32;
-        all_vertices.extend_from_slice(&verts);
-        for i in &idxs {
-            all_indices.push(base + i);
-        }
+    // --- Buildings ---
+    for b in &scene.buildings {
+        let footprint = match b.shape {
+            BuildingShape::LShape => l_shape_footprint(b.cx, b.cz, b.width, b.depth, 0.45),
+            BuildingShape::TShape => t_shape_footprint(b.cx, b.cz, b.width, b.depth),
+            BuildingShape::Rect => rect_footprint(b.cx, b.cz, b.width, b.depth),
+        };
+        let base_y = terrain_height_rbf(b.cx, b.cz, &scene.terrain.control_points);
+        let (verts, idxs) = extrude_building(&footprint, b.height, base_y, b.color);
+        add_geometry(&mut all_vertices, &mut all_indices, &verts, &idxs);
+    }
+
+    // --- Trees ---
+    for tree_def in &scene.trees {
+        let base_y = terrain_height_rbf(tree_def.x, tree_def.z, &scene.terrain.control_points);
+        let (tv, ti) = make_tree(tree_def, base_y);
+        add_geometry(&mut all_vertices, &mut all_indices, &tv, &ti);
     }
 
     Mesh::new(device, &all_vertices, &all_indices)
+}
+
+/// Simple tree: brown cylinder trunk + green cone canopy.
+fn make_tree(def: &TreeDef, base_y: f32) -> (Vec<Vertex>, Vec<u32>) {
+    let mut vertices = Vec::new();
+    let mut indices = Vec::new();
+
+    let x = def.x;
+    let z = def.z;
+    let trunk_color = def.trunk_color;
+    let leaf_color = def.leaf_color;
+    let trunk_r = def.trunk_radius;
+    let trunk_h = def.trunk_height;
+    let canopy_r = def.canopy_radius;
+    let canopy_h = def.canopy_height;
+    let segments = 8u32;
+
+    // Trunk (octagonal prism)
+    for i in 0..segments {
+        let a0 = (i as f32 / segments as f32) * std::f32::consts::TAU;
+        let a1 = ((i + 1) as f32 / segments as f32) * std::f32::consts::TAU;
+        let (c0, s0) = (a0.cos(), a0.sin());
+        let (c1, s1) = (a1.cos(), a1.sin());
+
+        let base = vertices.len() as u32;
+        let nx = (c0 + c1) * 0.5;
+        let nz = (s0 + s1) * 0.5;
+        let nl = (nx * nx + nz * nz).sqrt();
+        let normal = [nx / nl, 0.0, nz / nl];
+
+        vertices.push(Vertex { position: [x + c0 * trunk_r, base_y, z + s0 * trunk_r], normal, color: trunk_color });
+        vertices.push(Vertex { position: [x + c1 * trunk_r, base_y, z + s1 * trunk_r], normal, color: trunk_color });
+        vertices.push(Vertex { position: [x + c1 * trunk_r, base_y + trunk_h, z + s1 * trunk_r], normal, color: trunk_color });
+        vertices.push(Vertex { position: [x + c0 * trunk_r, base_y + trunk_h, z + s0 * trunk_r], normal, color: trunk_color });
+
+        indices.push(base);
+        indices.push(base + 1);
+        indices.push(base + 2);
+        indices.push(base);
+        indices.push(base + 2);
+        indices.push(base + 3);
+    }
+
+    // Canopy (cone)
+    let cone_base_y = base_y + trunk_h * 0.5;
+    let cone_tip_y = cone_base_y + canopy_h;
+    let tip_idx = vertices.len() as u32;
+    vertices.push(Vertex {
+        position: [x, cone_tip_y, z],
+        normal: [0.0, 1.0, 0.0],
+        color: leaf_color,
+    });
+
+    for i in 0..segments {
+        let a0 = (i as f32 / segments as f32) * std::f32::consts::TAU;
+        let a1 = ((i + 1) as f32 / segments as f32) * std::f32::consts::TAU;
+        let (c0, s0) = (a0.cos(), a0.sin());
+        let (c1, s1) = (a1.cos(), a1.sin());
+
+        let mx = (c0 + c1) * 0.5;
+        let mz = (s0 + s1) * 0.5;
+        let slope = canopy_r / canopy_h;
+        let ny = slope;
+        let nl = (mx * mx + mz * mz + ny * ny).sqrt();
+        let normal = [mx / nl, ny / nl, mz / nl];
+
+        let base = vertices.len() as u32;
+        vertices.push(Vertex { position: [x + c0 * canopy_r, cone_base_y, z + s0 * canopy_r], normal, color: leaf_color });
+        vertices.push(Vertex { position: [x + c1 * canopy_r, cone_base_y, z + s1 * canopy_r], normal, color: leaf_color });
+
+        indices.push(tip_idx);
+        indices.push(base);
+        indices.push(base + 1);
+    }
+
+    (vertices, indices)
 }

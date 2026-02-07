@@ -13,7 +13,7 @@ impl OrbitCamera {
             target: Vec3::new(0.0, 0.0, 0.0),
             azimuth: std::f32::consts::FRAC_PI_4,
             elevation: 55.0_f32.to_radians(),
-            distance: 30.0,
+            distance: 40.0,
         }
     }
 

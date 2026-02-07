@@ -3,4 +3,5 @@ pub mod mesh;
 pub mod pipeline;
 pub mod state;
 pub mod building;
+pub mod terrain;
 pub mod scene;

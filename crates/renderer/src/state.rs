@@ -1,10 +1,11 @@
 use diorama_core::camera::OrbitCamera;
 use diorama_core::math::Mat4;
+use diorama_core::schema::DioramaScene;
 use wgpu::util::DeviceExt;
 
 use crate::mesh::Mesh;
 use crate::pipeline::create_pipeline;
-use crate::scene::create_diorama;
+use crate::scene::create_diorama_from_schema;
 
 #[repr(C)]
 #[derive(Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
@@ -27,7 +28,7 @@ pub struct RendererState {
 }
 
 impl RendererState {
-    pub async fn new(canvas: web_sys::HtmlCanvasElement) -> Self {
+    pub async fn new(canvas: web_sys::HtmlCanvasElement, scene: &DioramaScene) -> Self {
         let width = canvas.client_width() as u32;
         let height = canvas.client_height() as u32;
         canvas.set_width(width);
@@ -120,7 +121,7 @@ impl RendererState {
 
         let pipeline = create_pipeline(&device, format, &bind_group_layout);
         let depth_texture = Self::create_depth_texture(&device, width, height);
-        let mesh = create_diorama(&device);
+        let mesh = create_diorama_from_schema(&device, scene);
 
         Self {
             device,

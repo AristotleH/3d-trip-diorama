@@ -4,7 +4,10 @@ use std::rc::Rc;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 
+use diorama_core::schema::DioramaScene;
 use diorama_renderer::state::RendererState;
+
+const DEFAULT_SCENE_JSON: &str = include_str!("../../../assets/default_scene.json");
 
 #[wasm_bindgen]
 extern "C" {
@@ -27,8 +30,11 @@ pub async fn init_diorama() -> Result<(), JsValue> {
         .unwrap()
         .dyn_into::<web_sys::HtmlCanvasElement>()?;
 
+    let scene: DioramaScene = serde_json::from_str(DEFAULT_SCENE_JSON)
+        .expect("Failed to parse default scene JSON");
+
     console_log!("Initializing WebGPU renderer...");
-    let state = RendererState::new(canvas.clone()).await;
+    let state = RendererState::new(canvas.clone(), &scene).await;
     let (sw, sh) = state.surface_size();
     console_log!("Renderer initialized! surface={}x{}, indices={}", sw, sh, state.mesh_index_count());
 
@@ -61,7 +67,7 @@ pub async fn init_diorama() -> Result<(), JsValue> {
             let dx = e.client_x() - lx;
             let dy = e.client_y() - ly;
             *last_pos.borrow_mut() = (e.client_x(), e.client_y());
-            state.borrow_mut().camera.rotate(dx as f32, -dy as f32);
+            state.borrow_mut().camera.rotate(dx as f32, dy as f32);
         });
         canvas.add_event_listener_with_callback("mousemove", closure.as_ref().unchecked_ref())?;
         closure.forget();

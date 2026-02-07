@@ -1,0 +1,30 @@
+# Rust
+/target/
+**/*.rs.bk
+Cargo.lock
+
+# WASM build output
+/pkg/
+/web/pkg/
+
+# Environment and secrets
+.env
+.env.local
+.env.*.local
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Test artifacts
+/test-results/

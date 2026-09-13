@@ -165,8 +165,12 @@ Each layer has `depth_frac` (0.0 = top, 1.0 = bottom) and `color`. Colors interp
 ## Tests
 
 ```bash
-cargo test -p diorama-core
+node --test tests/*.test.mjs
+cargo test --locked -p diorama-core -p diorama-renderer
+cargo build --locked --release -p diorama-app --target wasm32-unknown-unknown
 ```
+
+GitHub Actions runs these as separate JavaScript tests, Rust tests, and WASM build checks on pull requests and pushes to `main`. The workflow can also be run manually. JavaScript tests use Node.js 24; Rust checks use stable Rust and the committed `Cargo.lock`. The WASM check compiles the Rust application; it does not package the JavaScript bindings or exercise a browser/GPU.
 
 ## Requirements
 

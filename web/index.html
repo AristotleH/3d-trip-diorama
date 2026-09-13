@@ -1,30 +1,67 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>3D Trip Diorama</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            background: #1a1a2e;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            overflow: hidden;
-        }
-        canvas {
-            width: 960px;
-            height: 640px;
-            border-radius: 8px;
-            cursor: grab;
-        }
-        canvas:active { cursor: grabbing; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#191929">
+<title>Diorama Cabinet</title>
+<style>
+* { box-sizing: border-box; }
+body { margin: 0; background: #191929; color: #f4eee8; font: 15px/1.5 system-ui, sans-serif; height: 100vh; height: 100dvh; display: flex; flex-direction: column; }
+header { width: min(100%, 1040px); margin: auto auto 0; padding: 20px 24px 12px; }
+.bar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+h1 { font: 500 25px/1.2 Georgia, serif; margin: 0; }
+label { font-size: 12px; color: #c1b7ca; }
+select { display: block; margin-top: 3px; background: #2a273b; color: #fff; border: 1px solid #615470; border-radius: 8px; padding: 10px 34px 10px 12px; font: inherit; max-width: 100%; }
+#description { color: #c1b7ca; margin: 10px 0 0; min-height: 1.5em; }
+main { width: min(100%, 1040px); margin: 0 auto; flex: 1; min-height: 120px; max-height: 640px; }
+canvas { display: block; width: 100%; height: 100%; touch-action: none; user-select: none; -webkit-user-select: none; border-radius: 12px; cursor: grab; }
+canvas:active { cursor: grabbing; }
+footer { width: min(100%, 1040px); margin: 0 auto auto; padding: 10px 24px 18px; display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; color: #c1b7ca; font-size: 12px; }
+a { color: #e4c4fa; text-underline-offset: 3px; }
+#status { color: #ffd49e; }
+@media(max-width: 600px) { header { padding: 14px 16px 10px; } h1 { font-size: 23px; } .bar { align-items: flex-start; } select { font-size: 16px; } main { max-height: none; } footer { padding: 10px 16px max(14px, env(safe-area-inset-bottom)); } }
+details { margin: 10px 0 0; border-top: 1px solid #454053; padding-top: 8px; }
+summary { cursor: pointer; color: #e4c4fa; }
+#osm-form { display: flex; gap: 8px; flex-wrap: wrap; align-items: end; padding: 10px 0; }
+#osm-form input, #osm-form button { font: inherit; padding: 9px; border-radius: 6px; border: 1px solid #615470; background: #2a273b; color: #fff; }
+#osm-form input { display: block; width: 122px; }
+#osm-form button { cursor: pointer; background: #54416b; min-height: 44px; }
+#osm-form button:disabled { opacity: .5; }
+.osm-note { font-size: 12px; color: #c1b7ca; margin: 0; }
+header { overflow: visible; }
+.osm-panel-head { display: none; align-items: center; justify-content: space-between; gap: 12px; }
+#osm-close { border: 0; background: transparent; color: #fff; font: 24px/1 system-ui, sans-serif; padding: 8px 10px; cursor: pointer; }
+@media(max-width: 600px) {
+  details[open]::before { content: ""; position: fixed; inset: 0; z-index: 9; background: rgb(9 8 18 / .62); }
+  .osm-panel { position: fixed; z-index: 10; left: 8px; right: 8px; bottom: max(8px, env(safe-area-inset-bottom)); max-height: min(70dvh, 560px); overflow-y: auto; overscroll-behavior: contain; padding: 16px; background: #242134; border: 1px solid #615470; border-radius: 16px; box-shadow: 0 -12px 48px rgb(0 0 0 / .45); }
+  .osm-panel-head { display: flex; }
+  #osm-form label { flex: 1 1 125px; }
+  #osm-form input { width: 100%; font-size: 16px; }
+}
+</style>
 </head>
 <body>
-    <canvas id="diorama-canvas" width="960" height="640"></canvas>
-    <script type="module" src="index.js"></script>
+<header>
+  <div class="bar"><h1>Diorama Cabinet</h1><label for="scene">Choose a world<select id="scene" disabled>
+    <option value="default">The original town</option>
+    <option value="violet-singularity">The Violet Singularity</option>
+    <option value="marshmallow-megalopolis">Marshmallow Megalopolis</option>
+    <option value="glacier-organ">Glacier Organ</option>
+  </select></label></div>
+  <p id="description">A miniature town with a river and pastel rooftops.</p>
+<details id="osm-details"><summary>Build a real place from OpenStreetMap</summary>
+<div class="osm-panel"><div class="osm-panel-head"><strong>Build a real place</strong><button id="osm-close" type="button" aria-label="Close OpenStreetMap form">×</button></div>
+<form id="osm-form">
+<label>Latitude<input name="latitude" type="number" step="any" min="-80" max="80" value="35.6812" required></label>
+<label>Longitude<input name="longitude" type="number" step="any" min="-180" max="180" value="139.7671" required></label>
+<label>Radius (metres)<input name="radius" type="number" step="100" min="100" max="1000" value="500" required></label>
+<button id="osm-build" type="submit" disabled>Build this place</button><button id="osm-cancel" type="button" hidden>Cancel</button>
+</form><p class="osm-note">Square coverage extends this distance in each direction. Buildings, parks and water are cut at the boundary; courtyards and islands remain open. Flat ground; missing building heights are estimated. Coordinates are sent to the public Overpass API. Up to 2,500 building pieces; any omissions are reported with their reasons.</p>
+</div></details>
+</header>
+<main><canvas id="diorama-canvas" width="960" height="640" aria-label="Interactive 3D diorama. Drag to orbit and pinch or scroll to zoom."></canvas></main>
+<footer><a id="osm-credit" href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener" hidden>© OpenStreetMap contributors · ODbL</a><span>Drag to orbit · Pinch or scroll to zoom</span><span id="status" role="status" aria-live="polite">Starting renderer…</span><a id="schema" href="./scenes/default.json" download="default.json">Download scene JSON</a></footer>
+<script type="module" src="index.js?v=coverage-1"></script>
 </body>
 </html>

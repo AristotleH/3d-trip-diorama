@@ -7,6 +7,10 @@ pub struct DioramaScene {
     pub name: String,
     pub terrain: TerrainDef,
     #[serde(default)]
+    pub surfaces: Vec<SurfaceDef>,
+    #[serde(default = "default_material_scale")]
+    pub material_scale: f32,
+    #[serde(default)]
     pub slab: SlabDef,
     #[serde(default)]
     pub water: Vec<WaterDef>,
@@ -16,6 +20,17 @@ pub struct DioramaScene {
     pub buildings: Vec<BuildingDef>,
     #[serde(default)]
     pub trees: Vec<TreeDef>,
+}
+
+fn default_material_scale() -> f32 { 1.0 }
+
+#[derive(Debug, Deserialize)]
+pub struct SurfaceDef {
+    pub points: Vec<[f32; 2]>,
+    #[serde(default)]
+    pub holes: Vec<Vec<[f32; 2]>>,
+    pub color: [f32; 3],
+    pub kind: String,
 }
 
 /// Terrain surface defined by Gaussian RBF control points.
@@ -127,6 +142,10 @@ pub struct BuildingDef {
     pub color: [f32; 3],
     #[serde(default)]
     pub shape: BuildingShape,
+    #[serde(default)]
+    pub footprint: Vec<[f32; 2]>,
+    #[serde(default)]
+    pub holes: Vec<Vec<[f32; 2]>>,
 }
 
 #[derive(Debug, Deserialize, Default, Clone, Copy, PartialEq)]
@@ -338,5 +357,32 @@ mod tests {
         assert_eq!(scene.terrain.half_size, 18.0);
         assert_eq!(scene.buildings.len(), 1);
         assert_eq!(scene.buildings[0].shape, BuildingShape::Rect);
+    }
+}
+
+#[cfg(test)]
+mod example_tests {
+    use super::*;
+
+    #[test]
+    fn gallery_examples_use_the_existing_schema_and_bounded_geometry() {
+        let examples = [
+            include_str!("../../../web/scenes/default.json"),
+            include_str!("../../../web/scenes/violet-singularity.json"),
+            include_str!("../../../web/scenes/marshmallow-megalopolis.json"),
+            include_str!("../../../web/scenes/glacier-organ.json"),
+        ];
+        for json in examples {
+            let scene: DioramaScene = serde_json::from_str(json).unwrap();
+            assert!(!scene.name.is_empty());
+            assert!(scene.terrain.resolution > 0 && scene.terrain.resolution <= 100);
+            assert!(scene.buildings.len() <= 50);
+            for b in &scene.buildings {
+                assert!(b.width > 0.0 && b.depth > 0.0 && b.height > 0.0);
+                assert!(b.cx.abs() + b.width / 2.0 <= scene.terrain.half_size);
+                assert!(b.cz.abs() + b.depth / 2.0 <= scene.terrain.half_size);
+            }
+            for p in &scene.terrain.control_points { assert!(p.sigma > 0.0); }
+        }
     }
 }

@@ -4,6 +4,7 @@ pub fn create_pipeline(
     device: &wgpu::Device,
     format: wgpu::TextureFormat,
     bind_group_layout: &wgpu::BindGroupLayout,
+    sample_count: u32,
 ) -> wgpu::RenderPipeline {
     let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
         label: Some("Diorama Shader"),
@@ -48,8 +49,50 @@ pub fn create_pipeline(
             stencil: wgpu::StencilState::default(),
             bias: wgpu::DepthBiasState::default(),
         }),
-        multisample: wgpu::MultisampleState::default(),
+        multisample: wgpu::MultisampleState { count: sample_count, ..Default::default() },
         multiview: None,
         cache: None,
     })
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn shader_derivatives_execute_before_material_branches() {
+        let module = naga::front::wgsl::parse_str(include_str!("shaders/diorama.wgsl"))
+            .expect("WGSL should parse");
+        // Naga's flat-input uniformity analysis differs from browser validators.
+        // Keep derivatives out of helpers that may be called conditionally.
+        for (_, function) in module.functions.iter() {
+            assert!(!function.expressions.iter().any(|(_, expression)| {
+                matches!(expression, naga::Expression::Derivative { .. })
+            }), "material helpers must not calculate derivatives");
+        }
+        let fragment = &module.entry_points.iter()
+            .find(|entry| entry.name == "fs_main").unwrap().function;
+        let derivatives: Vec<_> = fragment.expressions.iter()
+            .filter_map(|(handle, expression)| {
+                matches!(expression, naga::Expression::Derivative { .. }).then_some(handle)
+            }).collect();
+        assert!(!derivatives.is_empty(), "preserve facade antialiasing");
+        for derivative in derivatives {
+            assert!(fragment.body.iter().take_while(|statement| {
+                matches!(statement, naga::Statement::Emit(_) | naga::Statement::Store { .. })
+            }).any(|statement| {
+                matches!(statement, naga::Statement::Emit(range) if range.clone().any(|handle| handle == derivative))
+            }), "derivatives must execute at entry before branching or calling helpers");
+        }
+    }
+
+    #[test]
+    fn diorama_shader_parses_and_validates() {
+        let module = naga::front::wgsl::parse_str(include_str!("shaders/diorama.wgsl"))
+            .expect("WGSL should parse");
+        naga::valid::Validator::new(
+            naga::valid::ValidationFlags::all(),
+            naga::valid::Capabilities::all(),
+        )
+        .validate(&module)
+        .expect("WGSL should validate");
+    }
 }

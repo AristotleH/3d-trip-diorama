@@ -1,0 +1,103 @@
+{
+  "name": "Default Diorama",
+  "terrain": {
+    "half_size": 18.0,
+    "resolution": 80,
+    "control_points": [
+      {"x":  -8.0, "z": -10.0, "amplitude":  0.7, "sigma": 7.0},
+      {"x":   6.0, "z":  -8.0, "amplitude":  0.5, "sigma": 6.0},
+      {"x": -12.0, "z":   8.0, "amplitude":  0.6, "sigma": 6.5},
+      {"x":  10.0, "z":  10.0, "amplitude":  0.55, "sigma": 7.0},
+      {"x":   0.0, "z":   2.0, "amplitude": -0.5, "sigma": 3.0},
+      {"x":  -6.0, "z":   2.0, "amplitude": -0.35, "sigma": 3.5},
+      {"x":   6.0, "z":   2.0, "amplitude": -0.35, "sigma": 3.5},
+      {"x":  14.0, "z":   0.0, "amplitude":  0.3, "sigma": 5.0},
+      {"x": -14.0, "z":  -2.0, "amplitude":  0.3, "sigma": 5.0},
+      {"x":   0.0, "z": -14.0, "amplitude":  0.4, "sigma": 6.0},
+      {"x":   0.0, "z":  14.0, "amplitude":  0.45, "sigma": 6.0},
+      {"x":  -8.0, "z":  -7.0, "amplitude": -0.2, "sigma": 2.5},
+      {"x":   3.0, "z":  -1.0, "amplitude":  0.15, "sigma": 3.0}
+    ],
+    "color_zones": [
+      {"max_height": -0.10, "color": [0.20, 0.35, 0.45]},
+      {"max_height":  0.05, "color": [0.76, 0.70, 0.55]},
+      {"max_height":  0.30, "color": [0.38, 0.55, 0.28]},
+      {"max_height":  0.50, "color": [0.45, 0.58, 0.30]},
+      {"max_height":  1.00, "color": [0.55, 0.60, 0.35]}
+    ],
+    "base_color": [0.55, 0.60, 0.35]
+  },
+  "slab": {
+    "depth": 5.0,
+    "layers": [
+      {"depth_frac": 0.00, "color": [0.55, 0.42, 0.28]},
+      {"depth_frac": 0.15, "color": [0.55, 0.42, 0.28]},
+      {"depth_frac": 0.40, "color": [0.72, 0.58, 0.40]},
+      {"depth_frac": 0.70, "color": [0.78, 0.65, 0.45]},
+      {"depth_frac": 1.00, "color": [0.62, 0.58, 0.52]}
+    ]
+  },
+  "water": [
+    {"cx":  0.0, "cz":  2.0, "radius_x": 10.0, "radius_z": 2.0},
+    {"cx": -8.0, "cz": -7.0, "radius_x":  2.5, "radius_z": 2.0}
+  ],
+  "roads": [
+    {"points": [[0, -16], [0, -8], [0, 0], [0, 8], [0, 16]], "width": 1.6},
+    {"points": [[-16, -6], [-8, -6], [0, -6], [8, -6], [16, -6]], "width": 1.4},
+    {"points": [[-16, 8], [-8, 8], [0, 8], [8, 8], [16, 8]], "width": 1.4}
+  ],
+  "buildings": [
+    {"cx": -10.0, "cz": -11.0, "width": 2.8, "depth": 2.5, "height": 5.5, "color": [0.93, 0.78, 0.62], "shape": "rect"},
+    {"cx":  -6.5, "cz": -10.0, "width": 3.2, "depth": 3.0, "height": 4.0, "color": [0.87, 0.63, 0.47], "shape": "l_shape"},
+    {"cx":  -3.0, "cz": -11.5, "width": 2.0, "depth": 2.5, "height": 7.5, "color": [0.95, 0.87, 0.73], "shape": "rect"},
+    {"cx":   3.0, "cz": -10.5, "width": 2.8, "depth": 2.8, "height": 5.0, "color": [0.82, 0.71, 0.55], "shape": "rect"},
+    {"cx":   6.5, "cz": -11.0, "width": 3.5, "depth": 2.5, "height": 6.0, "color": [0.90, 0.70, 0.50], "shape": "t_shape"},
+    {"cx":  10.5, "cz": -10.0, "width": 2.5, "depth": 2.0, "height": 3.5, "color": [0.85, 0.80, 0.70], "shape": "rect"},
+    {"cx": -11.5, "cz":  -8.0, "width": 2.0, "depth": 2.0, "height": 4.5, "color": [0.78, 0.60, 0.45], "shape": "rect"},
+    {"cx":  -7.5, "cz":  -7.5, "width": 2.5, "depth": 3.5, "height": 3.0, "color": [0.92, 0.85, 0.78], "shape": "l_shape"},
+    {"cx":  -2.5, "cz":  -8.0, "width": 3.0, "depth": 2.0, "height": 9.0, "color": [0.75, 0.72, 0.68], "shape": "rect"},
+    {"cx":   3.5, "cz":  -7.5, "width": 2.0, "depth": 2.0, "height": 4.5, "color": [0.88, 0.82, 0.72], "shape": "rect"},
+    {"cx":   7.5, "cz":  -8.5, "width": 2.8, "depth": 2.5, "height": 6.5, "color": [0.70, 0.55, 0.42], "shape": "rect"},
+    {"cx":  12.0, "cz":  -8.0, "width": 2.0, "depth": 3.0, "height": 5.0, "color": [0.80, 0.75, 0.65], "shape": "l_shape"},
+
+    {"cx":  -9.0, "cz":  -4.0, "width": 2.5, "depth": 2.5, "height": 6.0, "color": [0.93, 0.78, 0.62], "shape": "rect"},
+    {"cx":  -5.0, "cz":  -3.5, "width": 3.0, "depth": 2.5, "height": 7.5, "color": [0.82, 0.71, 0.55], "shape": "t_shape"},
+    {"cx":   3.5, "cz":  -3.0, "width": 2.5, "depth": 2.0, "height": 5.5, "color": [0.85, 0.80, 0.70], "shape": "rect"},
+    {"cx":   8.0, "cz":  -4.0, "width": 2.0, "depth": 2.5, "height": 8.0, "color": [0.92, 0.85, 0.78], "shape": "rect"},
+    {"cx":  12.0, "cz":  -3.5, "width": 2.5, "depth": 2.5, "height": 4.0, "color": [0.88, 0.82, 0.72], "shape": "l_shape"},
+
+    {"cx":  -9.5, "cz":   5.5, "width": 2.5, "depth": 2.0, "height": 4.0, "color": [0.87, 0.63, 0.47], "shape": "rect"},
+    {"cx":  -5.5, "cz":   6.0, "width": 3.5, "depth": 2.5, "height": 6.5, "color": [0.90, 0.70, 0.50], "shape": "l_shape"},
+    {"cx":   3.0, "cz":   5.5, "width": 2.5, "depth": 2.5, "height": 5.0, "color": [0.78, 0.60, 0.45], "shape": "rect"},
+    {"cx":   7.0, "cz":   6.0, "width": 2.0, "depth": 3.0, "height": 7.0, "color": [0.75, 0.72, 0.68], "shape": "t_shape"},
+    {"cx":  11.0, "cz":   5.5, "width": 2.5, "depth": 2.0, "height": 4.5, "color": [0.70, 0.55, 0.42], "shape": "rect"},
+
+    {"cx": -10.0, "cz":  10.0, "width": 2.5, "depth": 2.5, "height": 4.5, "color": [0.95, 0.87, 0.73], "shape": "rect"},
+    {"cx":  -6.0, "cz":  11.0, "width": 3.0, "depth": 2.0, "height": 6.0, "color": [0.85, 0.80, 0.70], "shape": "rect"},
+    {"cx":  -2.5, "cz":  10.5, "width": 2.5, "depth": 3.0, "height": 8.0, "color": [0.92, 0.85, 0.78], "shape": "l_shape"},
+    {"cx":   3.0, "cz":  11.5, "width": 2.0, "depth": 2.5, "height": 3.5, "color": [0.93, 0.78, 0.62], "shape": "rect"},
+    {"cx":   6.5, "cz":  10.0, "width": 3.0, "depth": 2.5, "height": 5.5, "color": [0.82, 0.71, 0.55], "shape": "t_shape"},
+    {"cx":  10.5, "cz":  11.0, "width": 2.0, "depth": 2.0, "height": 7.0, "color": [0.88, 0.82, 0.72], "shape": "rect"},
+    {"cx": -12.0, "cz":  13.0, "width": 2.5, "depth": 2.0, "height": 3.5, "color": [0.80, 0.75, 0.65], "shape": "rect"},
+    {"cx":   0.0, "cz":  14.0, "width": 3.0, "depth": 2.5, "height": 5.0, "color": [0.87, 0.63, 0.47], "shape": "l_shape"},
+    {"cx":   8.0, "cz":  13.5, "width": 2.0, "depth": 2.0, "height": 4.0, "color": [0.90, 0.70, 0.50], "shape": "rect"}
+  ],
+  "trees": [
+    {"x": -13.0, "z":  -4.0},
+    {"x": -12.0, "z":   7.0},
+    {"x": -14.0, "z":  12.0},
+    {"x":  -4.0, "z": -14.0},
+    {"x":   5.0, "z": -14.0},
+    {"x":  13.0, "z":  -5.0},
+    {"x":  14.0, "z":   7.0},
+    {"x":  12.0, "z":  14.0},
+    {"x":  -6.0, "z":  14.0},
+    {"x":   4.0, "z":  14.0},
+    {"x": -14.0, "z": -12.0},
+    {"x":  14.0, "z": -12.0},
+    {"x": -13.0, "z":   0.0},
+    {"x":  14.0, "z":   1.0},
+    {"x":  -8.0, "z":   4.0},
+    {"x":  10.0, "z":   4.0}
+  ]
+}

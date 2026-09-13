@@ -1,13 +1,13 @@
 use diorama_core::schema::{
     DioramaScene, BuildingShape, TreeDef, terrain_height_rbf,
 };
-use crate::building::{extrude_building, l_shape_footprint, rect_footprint, t_shape_footprint};
+use crate::building::{extrude_building_with_holes, l_shape_footprint, rect_footprint, t_shape_footprint};
 use crate::mesh::Mesh;
 use crate::terrain::{
     generate_terrain_from_def, generate_slab_walls_from_def,
     generate_road_from_def, generate_water_from_def,
 };
-use crate::vertex::Vertex;
+use crate::vertex::{Vertex, MATERIAL_FOLIAGE, MATERIAL_TRUNK};
 
 fn add_geometry(
     all_verts: &mut Vec<Vertex>,
@@ -40,6 +40,17 @@ pub fn create_diorama_from_schema(device: &wgpu::Device, scene: &DioramaScene) -
         add_geometry(&mut all_vertices, &mut all_indices, &wv, &wi);
     }
 
+    // OSM polygon water and parks sit on the flat import terrain.
+    for surface in &scene.surfaces {
+        let points: Vec<_> = surface.points.iter().map(|p| diorama_core::math::Vec2::new(p[0], p[1])).collect();
+        let holes: Vec<Vec<_>> = surface.holes.iter().map(|ring|ring.iter().map(|p|diorama_core::math::Vec2::new(p[0],p[1])).collect()).collect();
+        let indices = diorama_core::triangulate::triangulate_with_holes(&points,&holes);
+        let material = if surface.kind == "water" { crate::vertex::MATERIAL_WATER } else { crate::vertex::MATERIAL_TERRAIN };
+        // Keep overlays separated from the ground at neighborhood zoom levels.
+        let vertices: Vec<_> = surface.points.iter().chain(surface.holes.iter().flatten()).map(|p| Vertex::new([p[0], 0.04, p[1]], [0.0, 1.0, 0.0], surface.color, *p, material)).collect();
+        add_geometry(&mut all_vertices, &mut all_indices, &vertices, &indices);
+    }
+
     // --- Roads ---
     for road_def in &scene.roads {
         let (rv, ri) = generate_road_from_def(road_def, &scene.terrain);
@@ -48,13 +59,17 @@ pub fn create_diorama_from_schema(device: &wgpu::Device, scene: &DioramaScene) -
 
     // --- Buildings ---
     for b in &scene.buildings {
-        let footprint = match b.shape {
+        let footprint = if b.footprint.len() >= 3 {
+            b.footprint.iter().map(|p| diorama_core::math::Vec2::new(p[0], p[1])).collect()
+        } else { match b.shape {
             BuildingShape::LShape => l_shape_footprint(b.cx, b.cz, b.width, b.depth, 0.45),
             BuildingShape::TShape => t_shape_footprint(b.cx, b.cz, b.width, b.depth),
             BuildingShape::Rect => rect_footprint(b.cx, b.cz, b.width, b.depth),
-        };
+        }};
         let base_y = terrain_height_rbf(b.cx, b.cz, &scene.terrain.control_points);
-        let (verts, idxs) = extrude_building(&footprint, b.height, base_y, b.color);
+        let holes: Vec<Vec<_>>=b.holes.iter().map(|ring|ring.iter().map(|p|diorama_core::math::Vec2::new(p[0],p[1])).collect()).collect();
+        let (mut verts, idxs) = extrude_building_with_holes(&footprint, &holes, b.height, base_y, b.color);
+        for v in &mut verts { v.uv[0] *= scene.material_scale; v.uv[1] *= scene.material_scale; }
         add_geometry(&mut all_vertices, &mut all_indices, &verts, &idxs);
     }
 
@@ -96,10 +111,10 @@ fn make_tree(def: &TreeDef, base_y: f32) -> (Vec<Vertex>, Vec<u32>) {
         let nl = (nx * nx + nz * nz).sqrt();
         let normal = [nx / nl, 0.0, nz / nl];
 
-        vertices.push(Vertex { position: [x + c0 * trunk_r, base_y, z + s0 * trunk_r], normal, color: trunk_color });
-        vertices.push(Vertex { position: [x + c1 * trunk_r, base_y, z + s1 * trunk_r], normal, color: trunk_color });
-        vertices.push(Vertex { position: [x + c1 * trunk_r, base_y + trunk_h, z + s1 * trunk_r], normal, color: trunk_color });
-        vertices.push(Vertex { position: [x + c0 * trunk_r, base_y + trunk_h, z + s0 * trunk_r], normal, color: trunk_color });
+        vertices.push(Vertex::new([x + c0 * trunk_r, base_y, z + s0 * trunk_r], normal, trunk_color, [a0, 0.0], MATERIAL_TRUNK));
+        vertices.push(Vertex::new([x + c1 * trunk_r, base_y, z + s1 * trunk_r], normal, trunk_color, [a1, 0.0], MATERIAL_TRUNK));
+        vertices.push(Vertex::new([x + c1 * trunk_r, base_y + trunk_h, z + s1 * trunk_r], normal, trunk_color, [a1, trunk_h], MATERIAL_TRUNK));
+        vertices.push(Vertex::new([x + c0 * trunk_r, base_y + trunk_h, z + s0 * trunk_r], normal, trunk_color, [a0, trunk_h], MATERIAL_TRUNK));
 
         indices.push(base);
         indices.push(base + 1);
@@ -113,11 +128,10 @@ fn make_tree(def: &TreeDef, base_y: f32) -> (Vec<Vertex>, Vec<u32>) {
     let cone_base_y = base_y + trunk_h * 0.5;
     let cone_tip_y = cone_base_y + canopy_h;
     let tip_idx = vertices.len() as u32;
-    vertices.push(Vertex {
-        position: [x, cone_tip_y, z],
-        normal: [0.0, 1.0, 0.0],
-        color: leaf_color,
-    });
+    vertices.push(Vertex::new(
+        [x, cone_tip_y, z], [0.0, 1.0, 0.0], leaf_color,
+        [0.0, canopy_h], MATERIAL_FOLIAGE,
+    ));
 
     for i in 0..segments {
         let a0 = (i as f32 / segments as f32) * std::f32::consts::TAU;
@@ -133,8 +147,8 @@ fn make_tree(def: &TreeDef, base_y: f32) -> (Vec<Vertex>, Vec<u32>) {
         let normal = [mx / nl, ny / nl, mz / nl];
 
         let base = vertices.len() as u32;
-        vertices.push(Vertex { position: [x + c0 * canopy_r, cone_base_y, z + s0 * canopy_r], normal, color: leaf_color });
-        vertices.push(Vertex { position: [x + c1 * canopy_r, cone_base_y, z + s1 * canopy_r], normal, color: leaf_color });
+        vertices.push(Vertex::new([x + c0 * canopy_r, cone_base_y, z + s0 * canopy_r], normal, leaf_color, [a0, 0.0], MATERIAL_FOLIAGE));
+        vertices.push(Vertex::new([x + c1 * canopy_r, cone_base_y, z + s1 * canopy_r], normal, leaf_color, [a1, 0.0], MATERIAL_FOLIAGE));
 
         indices.push(tip_idx);
         indices.push(base);

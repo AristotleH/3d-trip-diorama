@@ -7,6 +7,23 @@ use wasm_bindgen::JsCast;
 use diorama_core::schema::DioramaScene;
 use diorama_renderer::state::RendererState;
 
+thread_local! {
+    static ACTIVE_RENDERER: RefCell<Option<Rc<RefCell<RendererState>>>> = const { RefCell::new(None) };
+}
+
+/// Replace only the scene mesh; keep the GPU device, controls and render loop.
+#[wasm_bindgen]
+pub fn load_scene(json: &str) -> Result<(), JsValue> {
+    let scene: DioramaScene = serde_json::from_str(json)
+        .map_err(|err| JsValue::from_str(&format!("Invalid scene: {err}")))?;
+    ACTIVE_RENDERER.with(|active| {
+        let active = active.borrow();
+        let renderer = active.as_ref().ok_or_else(|| JsValue::from_str("Renderer is not ready"))?;
+        renderer.borrow_mut().set_scene(&scene);
+        Ok(())
+    })
+}
+
 const DEFAULT_SCENE_JSON: &str = include_str!("../../../assets/default_scene.json");
 
 #[wasm_bindgen]
@@ -34,51 +51,57 @@ pub async fn init_diorama() -> Result<(), JsValue> {
         .expect("Failed to parse default scene JSON");
 
     console_log!("Initializing WebGPU renderer...");
+    let (width, height) = diorama_core::viewport::render_size(
+        canvas.client_width() as f64, canvas.client_height() as f64, window.device_pixel_ratio());
+    canvas.set_width(width);
+    canvas.set_height(height);
     let state = RendererState::new(canvas.clone(), &scene).await;
     let (sw, sh) = state.surface_size();
     console_log!("Renderer initialized! surface={}x{}, indices={}", sw, sh, state.mesh_index_count());
 
     let state = Rc::new(RefCell::new(state));
 
-    // --- Mouse drag for orbit ---
-    let dragging = Rc::new(RefCell::new(false));
-    let last_pos = Rc::new(RefCell::new((0i32, 0i32)));
+    ACTIVE_RENDERER.with(|active| *active.borrow_mut() = Some(state.clone()));
 
+    // Pointer events support mouse, touch, and pen with the same gesture state.
+    let gesture = Rc::new(RefCell::new(diorama_core::gesture::Gesture::default()));
     {
-        let dragging = dragging.clone();
-        let last_pos = last_pos.clone();
-        let closure = Closure::<dyn FnMut(_)>::new(move |e: web_sys::MouseEvent| {
-            *dragging.borrow_mut() = true;
-            *last_pos.borrow_mut() = (e.client_x(), e.client_y());
-        });
-        canvas.add_event_listener_with_callback("mousedown", closure.as_ref().unchecked_ref())?;
-        closure.forget();
-    }
-
-    {
-        let dragging = dragging.clone();
-        let last_pos = last_pos.clone();
-        let state = state.clone();
-        let closure = Closure::<dyn FnMut(_)>::new(move |e: web_sys::MouseEvent| {
-            if !*dragging.borrow() {
-                return;
+        let gesture = gesture.clone();
+        let target = canvas.clone();
+        let closure = Closure::<dyn FnMut(_)>::new(move |e: web_sys::PointerEvent| {
+            if e.button() != 0 { return; }
+            e.prevent_default();
+            if target.set_pointer_capture(e.pointer_id()).is_ok() {
+                gesture.borrow_mut().start(e.pointer_id(), e.client_x(), e.client_y());
             }
-            let (lx, ly) = *last_pos.borrow();
-            let dx = e.client_x() - lx;
-            let dy = e.client_y() - ly;
-            *last_pos.borrow_mut() = (e.client_x(), e.client_y());
-            state.borrow_mut().camera.rotate(dx as f32, dy as f32);
         });
-        canvas.add_event_listener_with_callback("mousemove", closure.as_ref().unchecked_ref())?;
+        canvas.add_event_listener_with_callback("pointerdown", closure.as_ref().unchecked_ref())?;
         closure.forget();
     }
-
     {
-        let dragging = dragging.clone();
-        let closure = Closure::<dyn FnMut(_)>::new(move |_e: web_sys::MouseEvent| {
-            *dragging.borrow_mut() = false;
+        let gesture = gesture.clone();
+        let state = state.clone();
+        let closure = Closure::<dyn FnMut(_)>::new(move |e: web_sys::PointerEvent| {
+            use diorama_core::gesture::Motion;
+            let motion = gesture.borrow_mut().update(e.pointer_id(), e.client_x(), e.client_y());
+            let mut state = state.borrow_mut();
+            match motion {
+                Some(Motion::Orbit(dx, dy)) => state.camera.rotate(dx, dy),
+                Some(Motion::Zoom(ratio)) => {
+                    state.camera.distance = (state.camera.distance * ratio).clamp(5.0, state.camera.max_distance);
+                }
+                None => {}
+            }
         });
-        canvas.add_event_listener_with_callback("mouseup", closure.as_ref().unchecked_ref())?;
+        canvas.add_event_listener_with_callback("pointermove", closure.as_ref().unchecked_ref())?;
+        closure.forget();
+    }
+    for event in ["pointerup", "pointercancel", "lostpointercapture"] {
+        let gesture = gesture.clone();
+        let closure = Closure::<dyn FnMut(_)>::new(move |e: web_sys::PointerEvent| {
+            gesture.borrow_mut().end(e.pointer_id());
+        });
+        canvas.add_event_listener_with_callback(event, closure.as_ref().unchecked_ref())?;
         closure.forget();
     }
 
@@ -89,7 +112,11 @@ pub async fn init_diorama() -> Result<(), JsValue> {
             e.prevent_default();
             state.borrow_mut().camera.zoom(e.delta_y() as f32);
         });
-        canvas.add_event_listener_with_callback("wheel", closure.as_ref().unchecked_ref())?;
+        let options = web_sys::AddEventListenerOptions::new();
+        options.set_passive(false);
+        canvas.add_event_listener_with_callback_and_add_event_listener_options(
+            "wheel", closure.as_ref().unchecked_ref(), &options,
+        )?;
         closure.forget();
     }
 
@@ -99,6 +126,15 @@ pub async fn init_diorama() -> Result<(), JsValue> {
 
     let state_loop = state.clone();
     *g.borrow_mut() = Some(Closure::new(move || {
+        // Layout changes and moving between displays do not always fire resize.
+        // Reallocate GPU targets only when the bounded backing size changes.
+        let (width, height) = diorama_core::viewport::render_size(
+            canvas.client_width() as f64, canvas.client_height() as f64, window.device_pixel_ratio());
+        if state_loop.borrow().surface_size() != (width, height) {
+            canvas.set_width(width);
+            canvas.set_height(height);
+            state_loop.borrow_mut().resize(width, height);
+        }
         state_loop.borrow().render();
         request_animation_frame(f.borrow().as_ref().unwrap());
     }));

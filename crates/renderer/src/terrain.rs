@@ -3,7 +3,9 @@ use diorama_core::schema::{
     terrain_height_rbf, terrain_color_from_zones, slab_layer_color,
 };
 
-use crate::vertex::Vertex;
+use crate::vertex::{
+    Vertex, MATERIAL_EARTH, MATERIAL_ROAD, MATERIAL_TERRAIN, MATERIAL_WATER,
+};
 
 /// Generate a terrain mesh from a schema definition using Gaussian RBF heights.
 pub fn generate_terrain_from_def(def: &TerrainDef) -> (Vec<Vertex>, Vec<u32>) {
@@ -21,11 +23,9 @@ pub fn generate_terrain_from_def(def: &TerrainDef) -> (Vec<Vertex>, Vec<u32>) {
             let y = terrain_height_rbf(x, z, &def.control_points);
             let color = terrain_color_from_zones(y, &def.color_zones, def.base_color);
 
-            vertices.push(Vertex {
-                position: [x, y, z],
-                normal: [0.0, 1.0, 0.0], // placeholder
-                color,
-            });
+            vertices.push(Vertex::new(
+                [x, y, z], [0.0, 1.0, 0.0], color, [x, z], MATERIAL_TERRAIN,
+            ));
         }
     }
 
@@ -142,10 +142,10 @@ pub fn generate_slab_walls_from_def(
             let color = slab_layer_color((t0 + t1) * 0.5, &slab_def.layers);
 
             let base = vertices.len() as u32;
-            vertices.push(Vertex { position: [x0, y0_a, z], normal, color });
-            vertices.push(Vertex { position: [x1, y1_a, z], normal, color });
-            vertices.push(Vertex { position: [x1, y1_b, z], normal, color });
-            vertices.push(Vertex { position: [x0, y0_b, z], normal, color });
+            vertices.push(Vertex::new([x0, y0_a, z], normal, color, [0.0, 0.0], MATERIAL_EARTH));
+            vertices.push(Vertex::new([x1, y1_a, z], normal, color, [0.0, 0.0], MATERIAL_EARTH));
+            vertices.push(Vertex::new([x1, y1_b, z], normal, color, [0.0, 0.0], MATERIAL_EARTH));
+            vertices.push(Vertex::new([x0, y0_b, z], normal, color, [0.0, 0.0], MATERIAL_EARTH));
 
             indices.push(base);
             indices.push(base + 1);
@@ -175,10 +175,10 @@ pub fn generate_slab_walls_from_def(
             let color = slab_layer_color((t0 + t1) * 0.5, &slab_def.layers);
 
             let base = vertices.len() as u32;
-            vertices.push(Vertex { position: [x0, y0_a, z], normal, color });
-            vertices.push(Vertex { position: [x1, y1_a, z], normal, color });
-            vertices.push(Vertex { position: [x1, y1_b, z], normal, color });
-            vertices.push(Vertex { position: [x0, y0_b, z], normal, color });
+            vertices.push(Vertex::new([x0, y0_a, z], normal, color, [0.0, 0.0], MATERIAL_EARTH));
+            vertices.push(Vertex::new([x1, y1_a, z], normal, color, [0.0, 0.0], MATERIAL_EARTH));
+            vertices.push(Vertex::new([x1, y1_b, z], normal, color, [0.0, 0.0], MATERIAL_EARTH));
+            vertices.push(Vertex::new([x0, y0_b, z], normal, color, [0.0, 0.0], MATERIAL_EARTH));
 
             indices.push(base);
             indices.push(base + 3);
@@ -208,10 +208,10 @@ pub fn generate_slab_walls_from_def(
             let color = slab_layer_color((t0 + t1) * 0.5, &slab_def.layers);
 
             let base = vertices.len() as u32;
-            vertices.push(Vertex { position: [x, y0_a, z0], normal, color });
-            vertices.push(Vertex { position: [x, y1_a, z1], normal, color });
-            vertices.push(Vertex { position: [x, y1_b, z1], normal, color });
-            vertices.push(Vertex { position: [x, y0_b, z0], normal, color });
+            vertices.push(Vertex::new([x, y0_a, z0], normal, color, [0.0, 0.0], MATERIAL_EARTH));
+            vertices.push(Vertex::new([x, y1_a, z1], normal, color, [0.0, 0.0], MATERIAL_EARTH));
+            vertices.push(Vertex::new([x, y1_b, z1], normal, color, [0.0, 0.0], MATERIAL_EARTH));
+            vertices.push(Vertex::new([x, y0_b, z0], normal, color, [0.0, 0.0], MATERIAL_EARTH));
 
             indices.push(base);
             indices.push(base + 3);
@@ -241,10 +241,10 @@ pub fn generate_slab_walls_from_def(
             let color = slab_layer_color((t0 + t1) * 0.5, &slab_def.layers);
 
             let base = vertices.len() as u32;
-            vertices.push(Vertex { position: [x, y0_a, z0], normal, color });
-            vertices.push(Vertex { position: [x, y1_a, z1], normal, color });
-            vertices.push(Vertex { position: [x, y1_b, z1], normal, color });
-            vertices.push(Vertex { position: [x, y0_b, z0], normal, color });
+            vertices.push(Vertex::new([x, y0_a, z0], normal, color, [0.0, 0.0], MATERIAL_EARTH));
+            vertices.push(Vertex::new([x, y1_a, z1], normal, color, [0.0, 0.0], MATERIAL_EARTH));
+            vertices.push(Vertex::new([x, y1_b, z1], normal, color, [0.0, 0.0], MATERIAL_EARTH));
+            vertices.push(Vertex::new([x, y0_b, z0], normal, color, [0.0, 0.0], MATERIAL_EARTH));
 
             indices.push(base);
             indices.push(base + 1);
@@ -257,10 +257,10 @@ pub fn generate_slab_walls_from_def(
 
     // Bottom face
     let base = vertices.len() as u32;
-    vertices.push(Vertex { position: [-half_size, base_y, -half_size], normal: [0.0, -1.0, 0.0], color: bottom_color });
-    vertices.push(Vertex { position: [ half_size, base_y, -half_size], normal: [0.0, -1.0, 0.0], color: bottom_color });
-    vertices.push(Vertex { position: [ half_size, base_y,  half_size], normal: [0.0, -1.0, 0.0], color: bottom_color });
-    vertices.push(Vertex { position: [-half_size, base_y,  half_size], normal: [0.0, -1.0, 0.0], color: bottom_color });
+    vertices.push(Vertex::new([-half_size, base_y, -half_size], [0.0, -1.0, 0.0], bottom_color, [-half_size, -half_size], MATERIAL_EARTH));
+    vertices.push(Vertex::new([ half_size, base_y, -half_size], [0.0, -1.0, 0.0], bottom_color, [ half_size, -half_size], MATERIAL_EARTH));
+    vertices.push(Vertex::new([ half_size, base_y,  half_size], [0.0, -1.0, 0.0], bottom_color, [ half_size,  half_size], MATERIAL_EARTH));
+    vertices.push(Vertex::new([-half_size, base_y,  half_size], [0.0, -1.0, 0.0], bottom_color, [-half_size,  half_size], MATERIAL_EARTH));
     indices.push(base);
     indices.push(base + 1);
     indices.push(base + 2);
@@ -303,25 +303,48 @@ pub fn generate_road_from_def(
         let nx = -dz / len * width * 0.5;
         let nz = dx / len * width * 0.5;
 
-        let road_lift = 0.02;
+        let road_lift = 0.08;
         let ya = terrain_height_rbf(ax, az, &terrain_def.control_points) + road_lift;
         let yb = terrain_height_rbf(bx, bz, &terrain_def.control_points) + road_lift;
 
         let base = vertices.len() as u32;
-        vertices.push(Vertex { position: [ax + nx, ya, az + nz], normal: [0.0, 1.0, 0.0], color });
-        vertices.push(Vertex { position: [ax - nx, ya, az - nz], normal: [0.0, 1.0, 0.0], color });
-        vertices.push(Vertex { position: [bx - nx, yb, bz - nz], normal: [0.0, 1.0, 0.0], color });
-        vertices.push(Vertex { position: [bx + nx, yb, bz + nz], normal: [0.0, 1.0, 0.0], color });
+        vertices.push(Vertex::new([ax + nx, ya, az + nz], [0.0, 1.0, 0.0], color, [ax + nx, az + nz], MATERIAL_ROAD));
+        vertices.push(Vertex::new([ax - nx, ya, az - nz], [0.0, 1.0, 0.0], color, [ax - nx, az - nz], MATERIAL_ROAD));
+        vertices.push(Vertex::new([bx - nx, yb, bz - nz], [0.0, 1.0, 0.0], color, [bx - nx, bz - nz], MATERIAL_ROAD));
+        vertices.push(Vertex::new([bx + nx, yb, bz + nz], [0.0, 1.0, 0.0], color, [bx + nx, bz + nz], MATERIAL_ROAD));
 
         indices.push(base);
-        indices.push(base + 2);
         indices.push(base + 1);
-        indices.push(base);
-        indices.push(base + 3);
         indices.push(base + 2);
+        indices.push(base);
+        indices.push(base + 2);
+        indices.push(base + 3);
     }
 
     (vertices, indices)
+}
+
+#[cfg(test)]
+mod road_tests {
+    use super::*;
+
+    #[test]
+    fn roads_face_the_same_direction_as_terrain_for_every_heading() {
+        let terrain: TerrainDef = serde_json::from_str("{}").unwrap();
+        for end in [[2.0, 0.0], [-2.0, 0.0], [0.0, 2.0], [0.0, -2.0], [2.0, 3.0]] {
+            let road = RoadDef { points: vec![[0.0, 0.0], end], width: 0.3 };
+            let (vertices, indices) = generate_road_from_def(&road, &terrain);
+            assert_eq!(indices.len(), 6);
+            for triangle in indices.chunks_exact(3) {
+                let a = vertices[triangle[0] as usize].position;
+                let b = vertices[triangle[1] as usize].position;
+                let c = vertices[triangle[2] as usize].position;
+                let signed_area = (b[0]-a[0])*(c[2]-a[2]) - (b[2]-a[2])*(c[0]-a[0]);
+                assert!(signed_area > 0.0, "road must match terrain's XZ winding");
+                assert!(a[1] > 0.04, "road must sit above park/water overlays");
+            }
+        }
+    }
 }
 
 /// Generate a flat water surface polygon from definition.
@@ -332,21 +355,18 @@ pub fn generate_water_from_def(water_def: &WaterDef) -> (Vec<Vertex>, Vec<u32>) 
     let mut indices = Vec::new();
 
     let y = -0.15;
-    vertices.push(Vertex {
-        position: [water_def.cx, y, water_def.cz],
-        normal: [0.0, 1.0, 0.0],
-        color,
-    });
+    vertices.push(Vertex::new(
+        [water_def.cx, y, water_def.cz], [0.0, 1.0, 0.0], color,
+        [water_def.cx, water_def.cz], MATERIAL_WATER,
+    ));
 
     for i in 0..=segments {
         let angle = (i as f32 / segments as f32) * std::f32::consts::TAU;
         let x = water_def.cx + angle.cos() * water_def.radius_x;
         let z = water_def.cz + angle.sin() * water_def.radius_z;
-        vertices.push(Vertex {
-            position: [x, y, z],
-            normal: [0.0, 1.0, 0.0],
-            color,
-        });
+        vertices.push(Vertex::new(
+            [x, y, z], [0.0, 1.0, 0.0], color, [x, z], MATERIAL_WATER,
+        ));
     }
 
     for i in 1..=segments {

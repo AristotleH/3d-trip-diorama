@@ -1,0 +1,540 @@
+{
+  "name": "Marshmallow Megalopolis",
+  "terrain": {
+    "half_size": 18,
+    "resolution": 80,
+    "control_points": [
+      {
+        "x": -9,
+        "z": -7,
+        "amplitude": 2,
+        "sigma": 5
+      },
+      {
+        "x": 9,
+        "z": 7,
+        "amplitude": 2,
+        "sigma": 5
+      },
+      {
+        "x": 8,
+        "z": -9,
+        "amplitude": 1.8,
+        "sigma": 4
+      },
+      {
+        "x": -9,
+        "z": 9,
+        "amplitude": 1.8,
+        "sigma": 4
+      },
+      {
+        "x": 0,
+        "z": 0,
+        "amplitude": -1.5,
+        "sigma": 3
+      }
+    ],
+    "color_zones": [
+      {
+        "max_height": -0.3,
+        "color": [
+          0.67,
+          0.79,
+          0.82
+        ]
+      },
+      {
+        "max_height": 0.1,
+        "color": [
+          0.98,
+          0.78,
+          0.68
+        ]
+      },
+      {
+        "max_height": 1,
+        "color": [
+          0.98,
+          0.61,
+          0.76
+        ]
+      },
+      {
+        "max_height": 4,
+        "color": [
+          1,
+          0.89,
+          0.72
+        ]
+      }
+    ],
+    "base_color": [
+      1,
+      0.89,
+      0.72
+    ]
+  },
+  "slab": {
+    "depth": 4,
+    "layers": [
+      {
+        "depth_frac": 0.0,
+        "color": [
+          0.97,
+          0.63,
+          0.74
+        ]
+      },
+      {
+        "depth_frac": 0.3333333333333333,
+        "color": [
+          1,
+          0.88,
+          0.66
+        ]
+      },
+      {
+        "depth_frac": 0.6666666666666666,
+        "color": [
+          0.58,
+          0.84,
+          0.8
+        ]
+      },
+      {
+        "depth_frac": 1.0,
+        "color": [
+          0.88,
+          0.59,
+          0.76
+        ]
+      }
+    ]
+  },
+  "water": [
+    {
+      "cx": 0,
+      "cz": 0,
+      "radius_x": 3.4,
+      "radius_z": 3.4
+    }
+  ],
+  "roads": [],
+  "buildings": [
+    {
+      "cx": -12,
+      "cz": -12,
+      "width": 3.1,
+      "depth": 3.1,
+      "height": 2.5,
+      "color": [
+        0.98,
+        0.74,
+        0.82
+      ],
+      "shape": "rect"
+    },
+    {
+      "cx": -12,
+      "cz": -4,
+      "width": 3.1,
+      "depth": 3.1,
+      "height": 4.5,
+      "color": [
+        0.73,
+        0.94,
+        0.85
+      ],
+      "shape": "l_shape"
+    },
+    {
+      "cx": -12,
+      "cz": 4,
+      "width": 3.1,
+      "depth": 3.1,
+      "height": 6.5,
+      "color": [
+        0.99,
+        0.89,
+        0.57
+      ],
+      "shape": "t_shape"
+    },
+    {
+      "cx": -12,
+      "cz": 12,
+      "width": 3.1,
+      "depth": 3.1,
+      "height": 2.5,
+      "color": [
+        0.98,
+        0.74,
+        0.82
+      ],
+      "shape": "rect"
+    },
+    {
+      "cx": -4,
+      "cz": -12,
+      "width": 3.1,
+      "depth": 3.1,
+      "height": 4.5,
+      "color": [
+        0.73,
+        0.94,
+        0.85
+      ],
+      "shape": "l_shape"
+    },
+    {
+      "cx": -4,
+      "cz": -4,
+      "width": 3.1,
+      "depth": 3.1,
+      "height": 6.5,
+      "color": [
+        0.99,
+        0.89,
+        0.57
+      ],
+      "shape": "t_shape"
+    },
+    {
+      "cx": -4,
+      "cz": 4,
+      "width": 3.1,
+      "depth": 3.1,
+      "height": 2.5,
+      "color": [
+        0.98,
+        0.74,
+        0.82
+      ],
+      "shape": "rect"
+    },
+    {
+      "cx": -4,
+      "cz": 12,
+      "width": 3.1,
+      "depth": 3.1,
+      "height": 4.5,
+      "color": [
+        0.73,
+        0.94,
+        0.85
+      ],
+      "shape": "l_shape"
+    },
+    {
+      "cx": 4,
+      "cz": -12,
+      "width": 3.1,
+      "depth": 3.1,
+      "height": 6.5,
+      "color": [
+        0.99,
+        0.89,
+        0.57
+      ],
+      "shape": "t_shape"
+    },
+    {
+      "cx": 4,
+      "cz": -4,
+      "width": 3.1,
+      "depth": 3.1,
+      "height": 2.5,
+      "color": [
+        0.98,
+        0.74,
+        0.82
+      ],
+      "shape": "rect"
+    },
+    {
+      "cx": 4,
+      "cz": 4,
+      "width": 3.1,
+      "depth": 3.1,
+      "height": 4.5,
+      "color": [
+        0.73,
+        0.94,
+        0.85
+      ],
+      "shape": "l_shape"
+    },
+    {
+      "cx": 4,
+      "cz": 12,
+      "width": 3.1,
+      "depth": 3.1,
+      "height": 6.5,
+      "color": [
+        0.99,
+        0.89,
+        0.57
+      ],
+      "shape": "t_shape"
+    },
+    {
+      "cx": 12,
+      "cz": -12,
+      "width": 3.1,
+      "depth": 3.1,
+      "height": 2.5,
+      "color": [
+        0.98,
+        0.74,
+        0.82
+      ],
+      "shape": "rect"
+    },
+    {
+      "cx": 12,
+      "cz": -4,
+      "width": 3.1,
+      "depth": 3.1,
+      "height": 4.5,
+      "color": [
+        0.73,
+        0.94,
+        0.85
+      ],
+      "shape": "l_shape"
+    },
+    {
+      "cx": 12,
+      "cz": 4,
+      "width": 3.1,
+      "depth": 3.1,
+      "height": 6.5,
+      "color": [
+        0.99,
+        0.89,
+        0.57
+      ],
+      "shape": "t_shape"
+    },
+    {
+      "cx": 12,
+      "cz": 12,
+      "width": 3.1,
+      "depth": 3.1,
+      "height": 2.5,
+      "color": [
+        0.98,
+        0.74,
+        0.82
+      ],
+      "shape": "rect"
+    }
+  ],
+  "trees": [
+    {
+      "x": 7.0,
+      "z": 0.0,
+      "canopy_radius": 1.15,
+      "canopy_height": 4.5,
+      "trunk_height": 1.6,
+      "leaf_color": [
+        0.97,
+        0.45,
+        0.68
+      ],
+      "trunk_color": [
+        0.88,
+        0.77,
+        0.64
+      ]
+    },
+    {
+      "x": 6.062,
+      "z": 3.5,
+      "canopy_radius": 1.15,
+      "canopy_height": 4.5,
+      "trunk_height": 1.6,
+      "leaf_color": [
+        0.46,
+        0.88,
+        0.76
+      ],
+      "trunk_color": [
+        0.88,
+        0.77,
+        0.64
+      ]
+    },
+    {
+      "x": 3.5,
+      "z": 6.062,
+      "canopy_radius": 1.15,
+      "canopy_height": 4.5,
+      "trunk_height": 1.6,
+      "leaf_color": [
+        0.84,
+        0.65,
+        0.98
+      ],
+      "trunk_color": [
+        0.88,
+        0.77,
+        0.64
+      ]
+    },
+    {
+      "x": 0.0,
+      "z": 7.0,
+      "canopy_radius": 1.15,
+      "canopy_height": 4.5,
+      "trunk_height": 1.6,
+      "leaf_color": [
+        0.97,
+        0.45,
+        0.68
+      ],
+      "trunk_color": [
+        0.88,
+        0.77,
+        0.64
+      ]
+    },
+    {
+      "x": -3.5,
+      "z": 6.062,
+      "canopy_radius": 1.15,
+      "canopy_height": 4.5,
+      "trunk_height": 1.6,
+      "leaf_color": [
+        0.46,
+        0.88,
+        0.76
+      ],
+      "trunk_color": [
+        0.88,
+        0.77,
+        0.64
+      ]
+    },
+    {
+      "x": -6.062,
+      "z": 3.5,
+      "canopy_radius": 1.15,
+      "canopy_height": 4.5,
+      "trunk_height": 1.6,
+      "leaf_color": [
+        0.84,
+        0.65,
+        0.98
+      ],
+      "trunk_color": [
+        0.88,
+        0.77,
+        0.64
+      ]
+    },
+    {
+      "x": -7.0,
+      "z": 0.0,
+      "canopy_radius": 1.15,
+      "canopy_height": 4.5,
+      "trunk_height": 1.6,
+      "leaf_color": [
+        0.97,
+        0.45,
+        0.68
+      ],
+      "trunk_color": [
+        0.88,
+        0.77,
+        0.64
+      ]
+    },
+    {
+      "x": -6.062,
+      "z": -3.5,
+      "canopy_radius": 1.15,
+      "canopy_height": 4.5,
+      "trunk_height": 1.6,
+      "leaf_color": [
+        0.46,
+        0.88,
+        0.76
+      ],
+      "trunk_color": [
+        0.88,
+        0.77,
+        0.64
+      ]
+    },
+    {
+      "x": -3.5,
+      "z": -6.062,
+      "canopy_radius": 1.15,
+      "canopy_height": 4.5,
+      "trunk_height": 1.6,
+      "leaf_color": [
+        0.84,
+        0.65,
+        0.98
+      ],
+      "trunk_color": [
+        0.88,
+        0.77,
+        0.64
+      ]
+    },
+    {
+      "x": -0.0,
+      "z": -7.0,
+      "canopy_radius": 1.15,
+      "canopy_height": 4.5,
+      "trunk_height": 1.6,
+      "leaf_color": [
+        0.97,
+        0.45,
+        0.68
+      ],
+      "trunk_color": [
+        0.88,
+        0.77,
+        0.64
+      ]
+    },
+    {
+      "x": 3.5,
+      "z": -6.062,
+      "canopy_radius": 1.15,
+      "canopy_height": 4.5,
+      "trunk_height": 1.6,
+      "leaf_color": [
+        0.46,
+        0.88,
+        0.76
+      ],
+      "trunk_color": [
+        0.88,
+        0.77,
+        0.64
+      ]
+    },
+    {
+      "x": 6.062,
+      "z": -3.5,
+      "canopy_radius": 1.15,
+      "canopy_height": 4.5,
+      "trunk_height": 1.6,
+      "leaf_color": [
+        0.84,
+        0.65,
+        0.98
+      ],
+      "trunk_color": [
+        0.88,
+        0.77,
+        0.64
+      ]
+    }
+  ]
+}

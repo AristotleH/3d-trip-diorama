@@ -24,6 +24,8 @@ features = [
     "Element",
     "HtmlCanvasElement",
     "MouseEvent",
+    "PointerEvent",
+    "AddEventListenerOptions",
     "WheelEvent",
     "EventTarget",
     "console",

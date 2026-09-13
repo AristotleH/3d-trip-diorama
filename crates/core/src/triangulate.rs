@@ -1,5 +1,23 @@
 use crate::math::Vec2;
 
+/// Indices address outer vertices followed by each hole's vertices.
+pub fn triangulate_with_holes(outer: &[Vec2], holes: &[Vec<Vec2>]) -> Vec<u32> {
+    if holes.is_empty() { return triangulate(outer); }
+    let mut points=outer.to_vec();
+    let mut starts=Vec::new();
+    for hole in holes {
+        if hole.len()<3 { return vec![]; }
+        starts.push(points.len());points.extend_from_slice(hole);
+    }
+    let coordinates: Vec<f64> = points.iter().flat_map(|p|[p.x as f64,p.y as f64]).collect();
+    let Ok(mut indices)=earcutr::earcut(&coordinates,&starts,2) else { return vec![]; };
+    for triangle in indices.chunks_exact_mut(3) {
+        let a=points[triangle[0]];let b=points[triangle[1]];let c=points[triangle[2]];
+        if (b.x-a.x)*(c.y-a.y)-(b.y-a.y)*(c.x-a.x)<0.0 { triangle.swap(1,2); }
+    }
+    indices.into_iter().map(|i|i as u32).collect()
+}
+
 /// Ear-clipping triangulation for a simple polygon (CCW winding).
 /// Returns indices into the input slice forming triangles.
 pub fn triangulate(polygon: &[Vec2]) -> Vec<u32> {

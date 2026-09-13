@@ -12,7 +12,7 @@ wasm-pack build crates/app --target web --out-dir ../../web/pkg
 cd web && python -m http.server 8080
 ```
 
-Then open http://localhost:8080. Drag to orbit, scroll to zoom.
+Then open http://localhost:8080. Drag to orbit, scroll to zoom. On touchscreens, drag with one finger to orbit and pinch with two fingers to zoom.
 
 ## Project Structure
 
@@ -32,7 +32,7 @@ Then open http://localhost:8080. Drag to orbit, scroll to zoom.
 
 ## Scene Schema
 
-Scenes are defined in JSON and loaded at build time via `include_str!`. The default scene lives at `assets/default_scene.json`.
+Scenes are defined in JSON. The initial fallback scene is embedded from `assets/default_scene.json`; the gallery loads examples from `web/scenes/` at runtime. `load_scene(json)` replaces the mesh and resets the camera while reusing the GPU device, event listeners, and render loop. Editing a gallery JSON file needs no WASM rebuild.
 
 ### Minimal Example
 
@@ -172,3 +172,33 @@ cargo test -p diorama-core
 
 - Rust + `wasm-pack`
 - A browser with WebGPU support (Chrome 113+, Edge 113+, Firefox Nightly)
+
+## Procedural Materials
+
+The renderer derives surface detail from material-space coordinates in the shared vertex format. Building façades generate window bays and floor bands from real scene units; roofs get a shallow cap and procedural membrane seams. Terrain combines broad, medium, and fine deterministic noise with the scene's existing height-based colors. Roads, water, earth, trunks, and foliage use the same material pipeline.
+
+This keeps fidelity independent of external texture files and applies automatically to new JSON scenes. Geometry remains compact, and detail is evaluated by the GPU at the displayed resolution.
+
+## Scene Gallery
+
+Use the world picker to switch between the original town, The Violet Singularity, Marshmallow Megalopolis, and Glacier Organ. Each option is a standalone example in `web/scenes/`, with a JSON download link in the gallery. The selected world is recorded in the URL fragment.
+
+To add a world, create a JSON file using the existing scene schema, add an option in `web/index.html`, and add its description in `web/index.js`. Keep the default JSON copy aligned with `assets/default_scene.json` when updating the original town.
+
+## OpenStreetMap Import
+
+Open **Build a real place from OpenStreetMap** and enter a latitude, longitude, and coverage radius (100–1,000 metres). The example center is Tokyo Station. Coverage is a square extending the radius in all four directions. The app fetches Overpass JSON directly from `https://overpass-api.de/api/interpreter`, then converts it locally. No account or API key is required. Requests can be canceled, time out after 35 seconds, and repeat queries reuse a bounded, one-hour in-memory cache. A failed import preserves the previous scene.
+
+The importer preserves simple building footprints and assembles outer-only multipolygon relations. Heights use `height` in metres/feet, then `building:levels × 3m`, then a labeled 9m residential / 12m general estimate. Roads are clipped to the area; water and parks are polygon surfaces. Imported terrain is flat. Scale and attribution are recorded in the exported scene's `metadata`; `footprint`, `surfaces`, and `material_scale` are optional additions to the schema, so existing scenes still work. Buildings retain their OSM IDs and height sources.
+
+To convert a saved **Overpass JSON** response without a browser:
+
+```bash
+node tools/convert-osm.mjs overpass.json 35.6812 139.7671 500 > scene.json
+```
+
+The input must contain `elements` with geometry (`out geom`), not raw `.osm` XML or PBF. Conversion is deterministic for a given response and center. Scene JSON can be downloaded in the UI; the imported world remains in the picker for the current session. Import state is not restored after a reload.
+
+Limits: up to 2,500 buildings, 5,000 road segments, 1,000 surfaces, and an approximately 80,000 generated-vertex budget; responses over 16 MiB are rejected. Polygons with more than 512 vertices, holes/courtyards, incomplete rings, and polygons crossing the scene edge are omitted and counted. Relations with holes suppress their member ways to avoid filling courtyards incorrectly. There is no terrain elevation, bridge/tunnel level modeling, building-part assembly, or distance-based LOD in this version. Geometry is one bounded mesh, rebuilt only on import. Public Overpass availability and browser network access can affect live imports.
+
+OSM-derived JSON includes attribution and the license link. Data is © OpenStreetMap contributors under the [ODbL](https://www.openstreetmap.org/copyright). API format: [Overpass documentation](https://dev.overpass-api.de/output_formats.html).

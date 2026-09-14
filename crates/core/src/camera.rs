@@ -68,6 +68,17 @@ impl OrbitCamera {
         self.elevation = self.elevation.clamp(min_el, max_el);
     }
 
+    /// Move the orbit center along the ground, relative to the current view.
+    /// Deltas are CSS pixels: positive x goes right, positive y goes down.
+    pub fn pan(&mut self, delta_x: f32, delta_y: f32, viewport_height: f32) {
+        let scale = 2.0 * self.distance * 22.5_f32.to_radians().tan()
+            / viewport_height.max(1.0);
+        let right = Vec3::new(self.azimuth.sin(), 0.0, -self.azimuth.cos());
+        let back = Vec3::new(self.azimuth.cos(), 0.0, self.azimuth.sin());
+        self.target = self.target + right * (delta_x * scale)
+            + back * (delta_y * scale / self.elevation.sin());
+    }
+
     pub fn zoom(&mut self, delta: f32) {
         self.distance *= 1.0 + delta * 0.001;
         self.distance = self.distance.clamp(5.0, self.max_distance);
@@ -77,6 +88,38 @@ impl OrbitCamera {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn pan_moves_center_and_eye_together_without_changing_orbit() {
+        for azimuth in [0.0, 1.2, std::f32::consts::PI] {
+            let mut camera = OrbitCamera::new();
+            camera.azimuth = azimuth;
+            let offset = camera.eye() - camera.target;
+            camera.pan(80.0, -40.0, 640.0);
+            let after = camera.eye() - camera.target;
+            assert!((after.x - offset.x).abs() < 0.00001);
+            assert!((after.z - offset.z).abs() < 0.00001);
+            assert_eq!(camera.target.y, 0.0);
+            assert_eq!(camera.distance, 40.0);
+            let right = Vec3::new(azimuth.sin(), 0.0, -azimuth.cos());
+            let back = Vec3::new(azimuth.cos(), 0.0, azimuth.sin());
+            assert!(camera.target.dot(right) > 0.0);
+            assert!(camera.target.dot(back) < 0.0);
+        }
+    }
+
+    #[test]
+    fn pan_scales_with_distance_and_css_viewport() {
+        let mut a = OrbitCamera::new();
+        let mut b = OrbitCamera::new();
+        b.distance *= 2.0;
+        a.pan(30.0, 60.0, 400.0);
+        b.pan(30.0, 60.0, 800.0);
+        assert!((a.target.x - b.target.x).abs() < 0.00001);
+        assert!((a.target.z - b.target.z).abs() < 0.00001);
+        a.pan(-30.0, -60.0, 400.0);
+        assert!(a.target.x.abs() < 0.00001 && a.target.z.abs() < 0.00001);
+    }
 
     #[test]
     fn fitted_scene_stays_inside_portrait_and_landscape_viewports() {

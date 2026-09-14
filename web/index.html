@@ -7,6 +7,7 @@
 <title>Diorama Cabinet</title>
 <style>
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 body { margin: 0; background: #191929; color: #f4eee8; font: 15px/1.5 system-ui, sans-serif; height: 100vh; height: 100dvh; display: flex; flex-direction: column; }
 header { width: min(100%, 1040px); margin: auto auto 0; padding: 20px 24px 12px; }
 .bar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
@@ -16,6 +17,7 @@ select { display: block; margin-top: 3px; background: #2a273b; color: #fff; bord
 #description { color: #c1b7ca; margin: 10px 0 0; min-height: 1.5em; }
 main { width: min(100%, 1040px); margin: 0 auto; flex: 1; min-height: 120px; max-height: 640px; }
 canvas { display: block; width: 100%; height: 100%; touch-action: none; user-select: none; -webkit-user-select: none; border-radius: 12px; cursor: grab; }
+canvas:focus-visible { outline: 2px solid #8caeff; outline-offset: 3px; }
 canvas:active { cursor: grabbing; }
 footer { width: min(100%, 1040px); margin: 0 auto auto; padding: 10px 24px 18px; display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; color: #c1b7ca; font-size: 12px; }
 a { color: #e4c4fa; text-underline-offset: 3px; }
@@ -30,6 +32,15 @@ summary { cursor: pointer; color: #e4c4fa; }
 #osm-form button:disabled { opacity: .5; }
 .osm-note { font-size: 12px; color: #c1b7ca; margin: 0; }
 header { overflow: visible; }
+#prompt-form { display: grid; grid-template-columns: 1fr auto; gap: 8px; margin-top: 12px; }
+#prompt-form textarea { display: block; width: 100%; resize: vertical; min-height: 58px; max-height: 140px; background: #2a273b; color: #fff; border: 1px solid #615470; border-radius: 8px; padding: 9px; font: inherit; }
+#prompt-form .prompt-text { grid-column: 1 / -1; }
+#prompt-form select { padding: 8px; }
+#prompt-form button, #place-results button { background: #54416b; color: #fff; border: 1px solid #807092; border-radius: 8px; padding: 10px 14px; font: inherit; cursor: pointer; }
+#prompt-form button:disabled { opacity: .5; }
+#place-results { max-height: 160px; overflow-y: auto; }
+#place-results button { display: block; width: 100%; text-align: left; margin: 8px 0; }
+.prompt-note { font-size: 11px; color: #c1b7ca; margin: 6px 0; }
 .osm-panel-head { display: none; align-items: center; justify-content: space-between; gap: 12px; }
 #osm-close { border: 0; background: transparent; color: #fff; font: 24px/1 system-ui, sans-serif; padding: 8px 10px; cursor: pointer; }
 @media(max-width: 600px) {
@@ -50,6 +61,17 @@ header { overflow: visible; }
     <option value="glacier-organ">Glacier Organ</option>
   </select></label></div>
   <p id="description">A miniature town with a river and pastel rooftops.</p>
+  <label>Site version<select id="version"><option value="manual">Without AI</option><option value="llm">With AI</option></select></label>
+  <section id="llm-panel" hidden>
+  <p id="llm-availability" class="prompt-note" role="status">Checking AI availability…</p>
+  <form id="prompt-form">
+    <label class="prompt-text">Describe a world or a place<textarea name="prompt" maxlength="4000" required placeholder="A violet city around a crater, or 500 metres around Tokyo Station"></textarea></label>
+    <label>What to build<select name="mode"><option value="scene">Imagine a diorama</option><option value="place">Find a real place</option></select></label>
+    <div style="align-self:end"><button id="prompt-build" type="submit" disabled>Create</button> <button id="prompt-cancel" type="button" hidden>Cancel</button></div>
+  </form>
+  <p class="prompt-note">Descriptions go to the configured AI service. Real places use place search, then OpenStreetMap. Download generated scenes to keep them.</p>
+  <div id="place-results" aria-live="polite"></div>
+  </section>
 <details id="osm-details"><summary>Build a real place from OpenStreetMap</summary>
 <div class="osm-panel"><div class="osm-panel-head"><strong>Build a real place</strong><button id="osm-close" type="button" aria-label="Close OpenStreetMap form">×</button></div>
 <form id="osm-form">
@@ -60,8 +82,8 @@ header { overflow: visible; }
 </form><p class="osm-note">Square coverage extends this distance in each direction. Buildings, parks and water are cut at the boundary; courtyards and islands remain open. Flat ground; missing building heights are estimated. Coordinates are sent to the public Overpass API. Up to 2,500 building pieces; any omissions are reported with their reasons.</p>
 </div></details>
 </header>
-<main><canvas id="diorama-canvas" width="960" height="640" aria-label="Interactive 3D diorama. Drag to orbit and pinch or scroll to zoom."></canvas></main>
-<footer><a id="osm-credit" href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener" hidden>© OpenStreetMap contributors · ODbL</a><span>Drag to orbit · Pinch or scroll to zoom</span><span id="status" role="status" aria-live="polite">Starting renderer…</span><a id="schema" href="./scenes/default.json" download="default.json">Download scene JSON</a></footer>
-<script type="module" src="index.js?v=coverage-1"></script>
+<main><canvas id="diorama-canvas" tabindex="0" width="960" height="640" aria-label="Interactive 3D diorama. Drag or twist two fingers to orbit. Focus the scene and use WASD, or two-finger drag or scroll, to pan. Pinch or Ctrl+scroll to zoom."></canvas></main>
+<footer><a id="osm-credit" href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener" hidden>© OpenStreetMap contributors · ODbL</a><span>Drag or two-finger twist to orbit · Two-finger drag / scroll or WASD to pan · Pinch / Ctrl+scroll to zoom</span><span id="status" role="status" aria-live="polite">Starting renderer…</span><a id="schema" href="./scenes/default.json" download="default.json">Download scene JSON</a></footer>
+<script type="module" src="index.js?v=touch-twist-4"></script>
 </body>
 </html>

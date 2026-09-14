@@ -23,6 +23,8 @@ features = [
     "Document",
     "Element",
     "HtmlCanvasElement",
+    "HtmlElement",
+    "KeyboardEvent",
     "MouseEvent",
     "PointerEvent",
     "AddEventListenerOptions",

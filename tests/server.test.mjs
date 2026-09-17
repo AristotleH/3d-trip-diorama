@@ -1,6 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { once } from 'node:events';
+import { spawn } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 import { createServer } from '../server/index.mjs';
 
 async function serve(t, services) {
@@ -89,3 +91,39 @@ test('manual-only server blocks LLM calls but serves the gallery',async t=>{
   assert.deepEqual(await (await fetch(base+'/api/config')).json(),{llmEnabled:false,llmConfigured:false});
   assert.equal((await post({mode:'scene',prompt:'village'})).status,403);
 });
+
+for (const invalidConfig of [
+  { LLM_OUTPUT_MODE: 'invalid-mode' },
+  { LLM_BASE_URL: 'not-a-url' },
+]) {
+  test(`disabled CLI starts despite invalid ${Object.keys(invalidConfig)[0]}`, { timeout: 10000 }, async t => {
+    const child = spawn(process.execPath, [fileURLToPath(new URL('../server/index.mjs', import.meta.url))], {
+      env: { ...process.env, PORT: '0', LLM_ENABLED: 'false', LLM_MODEL: '', LLM_API_KEY: '',
+        LLM_BASE_URL: 'https://example.invalid/v1', LLM_OUTPUT_MODE: 'json_schema', ...invalidConfig },
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+    const exited = once(child, 'exit');
+    t.after(async () => { child.kill(); await exited; });
+    let output = '', errors = '';
+    child.stderr.on('data', chunk => { errors += chunk; });
+    const base = await new Promise((resolve, reject) => {
+      child.once('error', reject);
+      child.once('exit', code => reject(new Error(`CLI exited (${code}): ${errors}`)));
+      child.stdout.on('data', chunk => {
+        output += chunk;
+        const match = output.match(/Diorama: (http:\/\/127\.0\.0\.1:\d+)/);
+        if (match) resolve(match[1]);
+      });
+    });
+    const page = await fetch(base);
+    assert.equal(page.status, 200);
+    assert.match(await page.text(), /diorama-canvas/);
+    assert.deepEqual(await (await fetch(base + '/api/config')).json(), { llmEnabled: false, llmConfigured: false });
+    const response = await fetch(base + '/api/interpret', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mode: 'scene', prompt: 'village' }),
+    });
+    assert.equal(response.status, 403);
+    assert.match((await response.json()).error, /disabled/);
+  });
+}

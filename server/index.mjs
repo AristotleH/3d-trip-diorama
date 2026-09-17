@@ -69,9 +69,10 @@ export function createServer({ interpret, geocode, timeoutMs = 90000, llmEnabled
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  const interpret = createLLM({ baseUrl: process.env.LLM_BASE_URL, model: process.env.LLM_MODEL, apiKey: process.env.LLM_API_KEY, outputMode: process.env.LLM_OUTPUT_MODE });
+  const llmEnabled = process.env.LLM_ENABLED !== 'false';
+  const interpret = llmEnabled ? createLLM({ baseUrl: process.env.LLM_BASE_URL, model: process.env.LLM_MODEL, apiKey: process.env.LLM_API_KEY, outputMode: process.env.LLM_OUTPUT_MODE }) : undefined;
   const geocode = createGeocoder({ url: process.env.GEOCODER_URL, userAgent: process.env.GEOCODER_USER_AGENT });
-  const server = createServer({ interpret, geocode, llmEnabled: process.env.LLM_ENABLED !== 'false', llmConfigured: Boolean(process.env.LLM_MODEL) });
+  const server = createServer({ interpret, geocode, llmEnabled, llmConfigured: Boolean(process.env.LLM_MODEL) });
   server.requestTimeout = 100000;
   server.headersTimeout = 10000;
   server.listen(Number(process.env.PORT || 8080), '127.0.0.1', () => console.log(`Diorama: http://127.0.0.1:${server.address().port}`));

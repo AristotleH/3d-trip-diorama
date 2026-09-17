@@ -5,11 +5,13 @@
 # WASM build output
 /pkg/
 /web/pkg/
+/dist/
 
 # Environment and secrets
 .env
 .env.local
 .env.*.local
+!.env.example
 
 # IDE
 .idea/

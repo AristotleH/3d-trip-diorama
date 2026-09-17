@@ -21,6 +21,8 @@ function gallery(fetch, hash = '', realOSMFetch = null) {
     fetchOSM: realOSMFetch, convertOSM, validateCenter, AbortController, setTimeout, clearTimeout,
     osmHash, parseOSMHash,
     setupOSM: callbacks => { osmCallbacks = callbacks; return {load: async params => imports.push(params)}; },
+    setupPrompt: () => {},
+    setupVersions: () => {},
     init: async () => {}, init_diorama: async () => {}, load_scene: json => loaded.push(json),
     document: { querySelector: id => elements[id.slice(1)] },
     location, history: { replaceState(a, b, url) { urls.push(url); } }, fetch,

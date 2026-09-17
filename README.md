@@ -12,7 +12,7 @@ wasm-pack build crates/app --target web --out-dir ../../web/pkg
 cd web && python -m http.server 8080
 ```
 
-Then open http://localhost:8080. Drag to orbit, scroll to zoom. On touchscreens, drag with one finger to orbit and pinch with two fingers to zoom.
+Then open http://localhost:8080. Drag to orbit. Click or Tab to focus the scene, then hold WASD to move its camera center. Two-finger trackpad scrolling (or a mouse wheel) also pans; pinch or Ctrl+scroll zooms. On touchscreens, drag with one finger to orbit. With two fingers, drag to pan, spread or pinch to zoom, and twist to orbit around the camera center. These two-finger gestures work together.
 
 ## Project Structure
 
@@ -172,6 +172,29 @@ cargo build --locked --release -p diorama-app --target wasm32-unknown-unknown
 
 GitHub Actions runs these as separate JavaScript tests, Rust tests, and WASM build checks on pull requests and pushes to `main`. The workflow can also be run manually. JavaScript tests use Node.js 24; Rust checks use stable Rust and the committed `Cargo.lock`. The WASM check compiles the Rust application; it does not package the JavaScript bindings or exercise a browser/GPU.
 
+## Plaintext generation
+
+Build the WASM bundle as above, then use Node.js 24 to serve both the UI and the generation API:
+
+```bash
+cp .env.example .env
+# Edit .env: set LLM_MODEL and LLM_API_KEY for your service.
+node --env-file=.env server/index.mjs
+```
+
+Open `http://127.0.0.1:8080`. The original Python static server still supports the gallery and manual OSM import, but plaintext generation requires the Node server. No npm packages are needed.
+
+- **Imagine a diorama:** describe a scene, for example “A violet village around a small lagoon.” The model returns a validated scene that replaces the current world and appears in the picker. Download its JSON to keep it; generated worlds are session-only.
+- **Find a real place:** describe one location and an area, for example “500 metres around Tokyo Station, Japan.” The model extracts a search query and radius. The configured geocoder returns up to five matches; select one to run the existing OSM import. Coordinates come from the geocoder, not model memory. Unsupported coverage or an unspecified place requests a more specific description.
+
+The single adapter calls `<LLM_BASE_URL>/chat/completions`. It defaults to OpenRouter's base URL, but works with compatible hosted or local endpoints. Set `LLM_MODEL` to the exact model ID from your provider and `LLM_API_KEY` to its key (optional for local endpoints). `LLM_OUTPUT_MODE` selects `json_schema`, `json`, or `text`; choose a mode the endpoint supports. All modes validate locally and permit one repair attempt for invalid JSON or geometry. HTTP errors, refusals, and truncated responses are not retried. Structured-output support varies by endpoint; see [OpenRouter's documentation](https://openrouter.ai/docs/guides/features/structured-outputs).
+
+Real-place generation additionally requires `GEOCODER_URL`, the full `/search` URL of a hosted or self-hosted **Nominatim-compatible** service. Configure authentication in that URL if required by your service, and use `GEOCODER_USER_AGENT` to identify your application. There is deliberately no default public geocoder. Searches are serialized at least 1.1 seconds apart and cached in memory for an hour (100 queries maximum). The public OSMF Nominatim service has [specific usage restrictions](https://operations.osmfoundation.org/policies/nominatim/), including an application-wide one-request-per-second limit, identification, attribution, and no autocomplete; choose it only after deliberately reviewing those terms. This server is a single local process, not a distributed rate limiter.
+
+The server binds to loopback, serves only `web/`, rejects foreign origins/hosts, and keeps keys out of client responses. It accepts one generation at a time, limits prompt/body/response sizes, and cancels upstream requests on disconnect or after 90 seconds. It is intended for local use; public hosting requires authentication, per-user quotas, and an appropriate geocoder service. Prompts go to the configured LLM; extracted names go to the geocoder; selected coordinates go to Overpass. The existing scene survives errors, cancellation, or stale responses.
+
+Generated scenes use a bounded subset of `DioramaScene`: terrain, rectangular/L/T buildings, trees, roads, and elliptical water. Limits include 120 buildings, 150 trees, 30 roads and an 80×80 terrain grid. Arbitrary polygons, courtyards, and custom slab layers remain available through the existing scene/OSM paths. The generation schema and validator live together in `server/schema.mjs`. Tests use fake provider and geocoder responses; they do not spend API credits.
+
 ## Requirements
 
 - Rust + `wasm-pack`
@@ -206,3 +229,15 @@ The input must contain `elements` with geometry (`out geom`), not raw `.osm` XML
 Limits: up to 2,500 buildings, 5,000 road segments, 1,000 surfaces, and an approximately 80,000 generated-vertex budget; responses over 16 MiB are rejected. Polygons with more than 512 vertices, holes/courtyards, incomplete rings, and polygons crossing the scene edge are omitted and counted. Relations with holes suppress their member ways to avoid filling courtyards incorrectly. There is no terrain elevation, bridge/tunnel level modeling, building-part assembly, or distance-based LOD in this version. Geometry is one bounded mesh, rebuilt only on import. Public Overpass availability and browser network access can affect live imports.
 
 OSM-derived JSON includes attribution and the license link. Data is © OpenStreetMap contributors under the [ODbL](https://www.openstreetmap.org/copyright). API format: [Overpass documentation](https://dev.overpass-api.de/output_formats.html).
+
+### Repeatable model evaluation
+
+`node tools/evaluate-llm.mjs` lists ten fixed prompts without contacting any service. When you are ready to spend API credits, run `node --env-file=.env tools/evaluate-llm.mjs --live --case=lagoon` for one case, or omit `--case` for all ten. Each case makes at most two model calls (including repair) and has a 90-second timeout. Reports, timings, and validated outputs are saved under ignored `test-results/`. The runner checks schema/radius/query expectations; scene appearance and prompt fidelity still require manual review using the criteria in `tests/evals/prompts.json`. It does not call the geocoder or Overpass, and never runs automatically in CI.
+
+## Maintaining both site versions
+
+The **Site version** toggle selects **Without AI** or **With AI**. Both use the same renderer, gallery and manual OSM importer. Manual is the default; explicit `?version=manual` and `?version=llm` links override the locally remembered choice. Turning AI off cancels pending generation and removes old place choices.
+
+Set `LLM_ENABLED=false` to disable the API itself. `/api/config` reports availability without exposing secrets; an unconfigured AI mode explains that manual tools remain usable. Hosted configuration uses Sites environment variables: `LLM_ENABLED`, `LLM_BASE_URL`, `LLM_MODEL`, secret `LLM_API_KEY`, `LLM_OUTPUT_MODE`, `GEOCODER_URL` and `GEOCODER_USER_AGENT`. Use a hosted/self-hosted geocoder suitable for multi-instance hosting; the Worker cache and concurrency limit are per instance.
+
+The existing private ChatGPT Site is identified by `.openai/hosting.json`. Run `wasm-pack build crates/app --target web --out-dir ../../web/pkg`, then `node tools/build-sites.mjs`. This creates the shared Cloudflare-compatible backend and embeds the web assets in `dist/server/index.js`. Publish the exact pushed source and packaged output through Sites. Retain the built WASM files in the Sites source checkout so the published source can reproduce the bundle. The regular GitHub source keeps those generated binaries ignored.

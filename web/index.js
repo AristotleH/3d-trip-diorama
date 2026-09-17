@@ -1,6 +1,8 @@
 import { setupOSM } from './osm-ui.mjs?v=coverage-1';
+import { setupPrompt } from './prompt-ui.mjs';
+import { setupVersions } from './versions.mjs';
 import { osmHash, parseOSMHash } from './osm-url.mjs?v=coverage-1';
-import init, { init_diorama, load_scene } from './pkg/diorama_app.js?v=coverage-1';
+import init, { init_diorama, load_scene } from './pkg/diorama_app.js?v=touch-twist-4';
 
 const descriptions = {
     default: 'A miniature town with a river and pastel rooftops.',
@@ -16,9 +18,16 @@ let active = 'default';
 let request = 0;
 let imported = null;
 let importedURL = null;
+let generated = null;
+let generatedURL = null;
 const credit = document.querySelector('#osm-credit');
 
 async function switchScene(id) {
+    if (id === 'generated' && generated) {
+        ++request;
+        showGenerated(generated);
+        return;
+    }
     if (id === 'osm' && imported) {
         ++request;
         showImported(imported);
@@ -49,6 +58,20 @@ async function switchScene(id) {
     }
 }
 
+function showGenerated(scene) {
+    load_scene(JSON.stringify(scene));
+    generated = scene;
+    if (generatedURL) URL.revokeObjectURL(generatedURL);
+    generatedURL = URL.createObjectURL(new Blob([JSON.stringify(scene, null, 2)], { type: 'application/json' }));
+    if (!picker.querySelector('option[value="generated"]')) picker.add(new Option('Your imagined diorama', 'generated'));
+    active = 'generated'; picker.value = active;
+    schema.href = generatedURL; schema.download = 'generated-diorama.json';
+    credit.hidden = true;
+    description.textContent = scene.name;
+    status.textContent = '';
+    history.replaceState(null, '', '#generated');
+}
+
 function showImported(scene) {
     load_scene(JSON.stringify(scene));
     imported = scene;
@@ -67,7 +90,7 @@ function showImported(scene) {
 }
 
 async function run() {
-    await init({ module_or_path: './pkg/diorama_app_bg.wasm?v=coverage-1' });
+    await init({ module_or_path: './pkg/diorama_app_bg.wasm?v=touch-twist-4' });
     await init_diorama();
     const osm = setupOSM({
         onStart() { const ticket = ++request; status.textContent = 'Fetching OpenStreetMap…'; return () => ticket === request; },
@@ -78,6 +101,13 @@ async function run() {
                 description.textContent = 'The linked place could not load. Check the coordinates and use Build this place to retry.';
         },
     });
+    const prompt = setupPrompt({
+        onStart() { const ticket = ++request; status.textContent = 'Interpreting your description…'; return () => ticket === request; },
+        onScene: showGenerated,
+        onPlace: place => osm.load(place),
+        onStatus: message => { status.textContent = message; },
+    });
+    setupVersions({ onChange() { ++request; prompt?.cancel(); status.textContent = ''; } });
     picker.disabled = false;
     status.textContent = '';
     picker.addEventListener('change', () => switchScene(picker.value));
@@ -91,7 +121,11 @@ async function run() {
                 return;
             }
             const requested = location.hash.slice(1);
-            if (requested === 'osm') {
+            if (requested === 'generated') {
+                ++request;
+                if (generated) showGenerated(generated);
+                else status.textContent = 'Generated scenes are kept for this session. Describe a scene to create another.';
+            } else if (requested === 'osm') {
                 ++request;
                 document.querySelector('#osm-details').open = true;
                 status.textContent = 'Enter coordinates to build a place.';

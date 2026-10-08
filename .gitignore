@@ -27,3 +27,7 @@ Thumbs.db
 
 # Test artifacts
 /test-results/
+
+# Generated sample places and artifact build
+/web/scenes/places/
+/dist/

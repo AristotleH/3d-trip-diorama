@@ -1,0 +1,22 @@
+[
+  { "id": "tokyo-station", "name": "Tokyo Station, Tokyo", "lat": 35.6812, "lon": 139.7671 },
+  { "id": "kyoto-gion", "name": "Gion, Kyoto", "lat": 35.0037, "lon": 135.7788 },
+  { "id": "hong-kong-central", "name": "Central, Hong Kong", "lat": 22.2819, "lon": 114.158 },
+  { "id": "singapore-marina-bay", "name": "Marina Bay, Singapore", "lat": 1.2834, "lon": 103.8607 },
+  { "id": "dubai-downtown", "name": "Downtown Dubai", "lat": 25.1972, "lon": 55.2744 },
+  { "id": "istanbul-sultanahmet", "name": "Sultanahmet, Istanbul", "lat": 41.0055, "lon": 28.9768 },
+  { "id": "venice-san-marco", "name": "San Marco, Venice", "lat": 45.4341, "lon": 12.3388 },
+  { "id": "rome-colosseum", "name": "Colosseum, Rome", "lat": 41.8902, "lon": 12.4922 },
+  { "id": "barcelona-eixample", "name": "Eixample, Barcelona", "lat": 41.3917, "lon": 2.1649 },
+  { "id": "paris-ile-de-la-cite", "name": "Île de la Cité, Paris", "lat": 48.853, "lon": 2.3499 },
+  { "id": "london-westminster", "name": "Westminster, London", "lat": 51.5007, "lon": -0.1246 },
+  { "id": "amsterdam-canal-ring", "name": "Canal Ring, Amsterdam", "lat": 52.3731, "lon": 4.8922 },
+  { "id": "reykjavik-centre", "name": "City Centre, Reykjavík", "lat": 64.1466, "lon": -21.9426 },
+  { "id": "marrakesh-medina", "name": "Medina, Marrakesh", "lat": 31.6258, "lon": -7.9891 },
+  { "id": "cape-town-waterfront", "name": "V&A Waterfront, Cape Town", "lat": -33.9036, "lon": 18.4207 },
+  { "id": "sydney-circular-quay", "name": "Circular Quay, Sydney", "lat": -33.8611, "lon": 151.2111 },
+  { "id": "rio-copacabana", "name": "Copacabana, Rio de Janeiro", "lat": -22.9711, "lon": -43.1822 },
+  { "id": "manhattan-midtown", "name": "Midtown Manhattan, New York", "lat": 40.7549, "lon": -73.984 },
+  { "id": "chicago-loop", "name": "The Loop, Chicago", "lat": 41.8819, "lon": -87.6278 },
+  { "id": "san-francisco-downtown", "name": "Financial District, San Francisco", "lat": 37.7946, "lon": -122.3999 }
+]

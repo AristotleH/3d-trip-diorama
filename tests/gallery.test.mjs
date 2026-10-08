@@ -8,7 +8,7 @@ import { convertOSM, validateCenter } from '../web/osm.mjs';
 const source = readFileSync(new URL('../web/index.js', import.meta.url), 'utf8')
   .replace(/^import .*?;$/gm, '');
 const tick = () => new Promise(resolve => setImmediate(resolve));
-function gallery(fetch, hash = '', realOSMFetch = null) {
+function gallery(fetch, hash = '', realOSMFetch = null, { liveOSM = true, places = null } = {}) {
   const elements = Object.fromEntries(['scene', 'status', 'description', 'schema', 'osm-credit', 'osm-details', 'osm-form', 'osm-build', 'osm-cancel', 'osm-close'].map(id => [id, {
     value: 'default', disabled: true, textContent: '', addEventListener(type, fn) { this[type] = fn; },
   }]));
@@ -22,8 +22,13 @@ function gallery(fetch, hash = '', realOSMFetch = null) {
     osmHash, parseOSMHash,
     setupOSM: callbacks => { osmCallbacks = callbacks; return {load: async params => imports.push(params)}; },
     init: async () => {}, init_diorama: async () => {}, load_scene: json => loaded.push(json),
-    document: { querySelector: id => elements[id.slice(1)] },
-    location, history: { replaceState(a, b, url) { urls.push(url); } }, fetch,
+    live_osm_enabled: () => liveOSM,
+    document: { querySelector: id => elements[id.slice(1)],
+      createElement: () => ({ children: [], append(option) { this.children.push(option); } }) },
+    location, history: { replaceState(a, b, url) { urls.push(url); } },
+    fetch: (url, ...rest) => url === './scenes/places/index.json'
+      ? Promise.resolve(places ? { ok: true, json: async () => places } : { ok: false, status: 404 })
+      : fetch(url, ...rest),
     window: { addEventListener(type, fn) { events[type] = fn; } },
     URL, Blob, Option: function(text, value) { this.value = value; },
     console: { error() {} },
@@ -35,6 +40,7 @@ function gallery(fetch, hash = '', realOSMFetch = null) {
   }
   vm.runInContext(source, context);
   elements.scene.querySelector = () => true;
+  elements.scene.append = group => { elements.scene.group = group; };
   return { elements, loaded, imports, urls,
     showImport(scene) { osmCallbacks.onScene(scene); },
     navigate(hash) { location.hash = hash; return events.hashchange(); },
@@ -128,4 +134,40 @@ test('download failure keeps the currently displayed world selected', async () =
   assert.equal(g.elements.scene.value, 'default');
   assert.deepEqual(g.loaded, []);
   assert.match(g.elements.status.textContent, /Could not load/);
+});
+
+const tokyo = { id: 'tokyo-station', name: 'Tokyo Station', lat: 35.6812, lon: 139.7671, radius: 400 };
+const placeScene = { metadata: { center: { lat: 35.6812, lon: 139.7671 }, radius_m: 400,
+  stats: { buildings: 3, estimated_heights: 1, roads: 2, water: 0, parks: 1, skipped: 0 } } };
+
+test('pre-built places join the picker and load from their own folder', async () => {
+  const requested = [];
+  const g = gallery(async url => { requested.push(url); return { ok: true, text: async () => JSON.stringify(placeScene) }; },
+    '', null, { places: [tokyo] });
+  await tick();
+  assert.equal(g.elements.scene.group.children[0].value, 'tokyo-station');
+  g.select('tokyo-station');
+  await tick();
+  assert.deepEqual(requested, ['./scenes/places/tokyo-station.json']);
+  assert.equal(g.loaded.length, 1);
+  assert.match(g.elements.description.textContent, /^Tokyo Station\. 3 building pieces/);
+  assert.equal(g.elements['osm-credit'].hidden, false);
+  assert.equal(g.urls.at(-1), '#tokyo-station');
+});
+
+test('a place fragment loads that place on startup', async () => {
+  const g = gallery(async () => ({ ok: true, text: async () => JSON.stringify(placeScene) }),
+    '#tokyo-station', null, { places: [tokyo] });
+  await tick(); await tick();
+  assert.equal(g.elements.scene.value, 'tokyo-station');
+});
+
+test('builds without live OSM hide the import panel and ignore OSM links', async () => {
+  const g = gallery(() => { throw new Error('unexpected request'); },
+    '#osm?lat=37.77453&lon=-122.389813&radius=1000', null, { liveOSM: false });
+  await tick();
+  assert.equal(g.elements['osm-details'].hidden, true);
+  assert.equal(g.elements['osm-build'].disabled, true);
+  assert.equal(g.imports.length, 0);
+  assert.equal(g.elements.scene.disabled, false);
 });

@@ -24,6 +24,12 @@ pub fn load_scene(json: &str) -> Result<(), JsValue> {
     })
 }
 
+/// Whether the page may offer live OpenStreetMap import (Overpass API requests).
+#[wasm_bindgen]
+pub fn live_osm_enabled() -> bool {
+    cfg!(feature = "live-osm")
+}
+
 const DEFAULT_SCENE_JSON: &str = include_str!("../../../assets/default_scene.json");
 
 #[wasm_bindgen]
